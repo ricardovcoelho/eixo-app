@@ -132,16 +132,16 @@ function nav(page,extra){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
   const ni=document.getElementById('nav-'+page)||document.getElementById('nav-sonhos'); if(ni)ni.classList.add('active');
-  const titles={home:['',''],dashboard:['Dashboard','Visão geral'],matriz:['Matriz Foco','Priorize suas tarefas'],sonhos:['Sonhos','Seus grandes objetivos de vida'],'dream-detail':['Detalhe do Sonho',''],objetivos:['Objetivos & KRs',''],tarefas:['Tarefas',''],rotinas:['Rotinas',''],acoes:['Ações','Tarefas do dia a dia'],agenda:['Agenda','']};
+  const titles={home:['',''],dashboard:['Dashboard','Visão geral'],matriz:['Matriz Foco','Priorize suas tarefas'],sonhos:['Projetos','Seus grandes projetos de vida'],'dream-detail':['Detalhe do Sonho',''],objetivos:['Objetivos & KRs',''],tarefas:['Tarefas',''],rotinas:['Rotinas',''],acoes:['Afazeres','Tarefas do dia a dia'],agenda:['Agenda','']};
   const info=titles[page]||['',''];
   document.getElementById('topbar-title').textContent=info[0]; document.getElementById('topbar-sub').textContent=info[1];
   document.querySelector('.topbar').style.display=page==='home'?'none':'flex';
   document.querySelector('.sync-bar').style.display=page==='home'?'none':'flex';
   const act=document.getElementById('topbar-actions'); act.innerHTML='';
-  if(page==='sonhos'){act.innerHTML='<button class="btn btn-accent" id="tb1">+ Novo Sonho</button>';document.getElementById('tb1').addEventListener('click',()=>openModal('modal-dream'));}
+  if(page==='sonhos'){act.innerHTML='<button class="btn btn-accent" id="tb1">+ Novo Projeto</button>';document.getElementById('tb1').addEventListener('click',()=>openModal('modal-dream'));}
   if(page==='objetivos'){act.innerHTML='<button class="btn btn-accent" id="tb2">+ Novo Objetivo</button>';document.getElementById('tb2').addEventListener('click',openNewObj);}
   if(page==='tarefas'){act.innerHTML='<button class="btn btn-accent" id="tb3">+ Nova Tarefa</button>';document.getElementById('tb3').addEventListener('click',()=>openNewTask());}
-  if(page==='acoes'){act.innerHTML='<button class="btn btn-accent" id="tb4">+ Nova Ação</button>';document.getElementById('tb4').addEventListener('click',openNovaAcao);}
+  if(page==='acoes'){act.innerHTML='<button class="btn btn-accent" id="tb4">+ Nova Ação</button>';document.getElementById('tb4').addEventListener('click',openNovoAfazer);}
   if(page==='home')renderHome();
   if(page==='dashboard')renderDash();
   if(page==='matriz')renderMatrizFull(document.getElementById('matriz-full'));
@@ -184,8 +184,8 @@ async function initApp(){
 
 // ─── MODALS HTML ─────────────────────────────────────────────────────────────
 function getModalsHTML(){return `
-<div class="overlay" id="modal-dream-edit"><div class="modal"><button class="modal-close" data-close="modal-dream-edit">×</button><h3>Editar Sonho</h3><div class="fg"><label>Nome</label><input id="de-name"></div><div class="fg"><label>Descrição</label><textarea id="de-desc"></textarea></div><div class="fg"><label>Prazo</label><input id="de-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-dream-edit">Cancelar</button><button class="btn btn-accent" id="btn-save-dream-edit">Salvar</button></div></div></div>
-<div class="overlay" id="modal-dream"><div class="modal"><button class="modal-close" data-close="modal-dream">×</button><h3>✦ Novo Sonho</h3><div class="fg"><label>Nome</label><input id="d-name" placeholder="Ex: Liberdade financeira"></div><div class="fg"><label>Descrição</label><textarea id="d-desc"></textarea></div><div class="fg"><label>Prazo</label><input id="d-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-dream">Cancelar</button><button class="btn btn-accent" id="btn-save-dream">Salvar Sonho</button></div></div></div>
+<div class="overlay" id="modal-dream-edit"><div class="modal"><button class="modal-close" data-close="modal-dream-edit">×</button><h3>Editar Projeto</h3><div class="fg"><label>Nome</label><input id="de-name"></div><div class="fg"><label>Descrição</label><textarea id="de-desc"></textarea></div><div class="fg"><label>Prazo</label><input id="de-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-dream-edit">Cancelar</button><button class="btn btn-accent" id="btn-save-dream-edit">Salvar</button></div></div></div>
+<div class="overlay" id="modal-dream"><div class="modal"><button class="modal-close" data-close="modal-dream">×</button><h3>✦ Novo Projeto</h3><div class="fg"><label>Nome</label><input id="d-name" placeholder="Ex: Liberdade financeira"></div><div class="fg"><label>Descrição</label><textarea id="d-desc"></textarea></div><div class="fg"><label>Prazo</label><input id="d-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-dream">Cancelar</button><button class="btn btn-accent" id="btn-save-dream">Salvar Projeto</button></div></div></div>
 <div class="overlay" id="modal-obj"><div class="modal"><button class="modal-close" data-close="modal-obj">×</button><h3 id="obj-modal-title">Novo Objetivo</h3><div class="fg"><label>Objetivo</label><input id="o-name"></div><div class="form-row"><div class="fg"><label>Sonho</label><select id="o-dream"></select></div><div class="fg"><label>Prazo</label><input id="o-date" type="date"></div></div><div class="fg"><label>Status</label><select id="o-status"><option value="on-track">No prazo</option><option value="done">Concluído</option></select></div><hr class="sep"><div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:10px">KRs</div><div id="kr-inputs"></div><button class="btn btn-sm" id="btn-add-kr">+ Adicionar KR</button><div class="modal-footer"><button class="btn" data-close="modal-obj">Cancelar</button><button class="btn btn-accent" id="btn-save-obj">Salvar</button></div></div></div>
 <div class="overlay" id="modal-link"><div class="modal"><button class="modal-close" data-close="modal-link">×</button><h3>Vincular Tarefa</h3><div class="fg"><label>Objetivo</label><select id="lnk-obj"></select></div><div class="fg" id="lnk-kr-group" style="display:none"><label>KR</label><select id="lnk-kr"></select></div><div class="modal-footer"><button class="btn" data-close="modal-link">Cancelar</button><button class="btn btn-accent" id="btn-save-link">Salvar</button></div></div></div>
 <div class="overlay" id="modal-task"><div class="modal"><button class="modal-close" data-close="modal-task">×</button><h3 id="task-modal-title">Nova Tarefa</h3><div class="fg"><label>Descrição</label><input id="t-name" placeholder="O que precisa ser feito?"></div><div class="fg"><label>Prazo</label><input id="t-date" type="date"></div><div class="fg"><label>Objetivo (opcional)</label><select id="t-obj"></select></div><div class="fg" id="t-kr-group" style="display:none"><label>KR</label><select id="t-kr"></select></div><div class="modal-footer"><button class="btn" data-close="modal-task">Cancelar</button><button class="btn btn-accent" id="btn-save-task">Salvar</button></div></div></div>
@@ -281,7 +281,7 @@ function addKR(name,date,krId){const c=document.getElementById('kr-inputs');cons
 function openEditDream(id){const d=state.dreams.find(x=>x.id===id);if(!d)return;editDreamId=id;document.getElementById('de-name').value=d.name;document.getElementById('de-desc').value=d.description||'';document.getElementById('de-date').value=d.due_date||'';openModal('modal-dream-edit');}
 function openNewTask(objId,krId){editTaskId=null;document.getElementById('task-modal-title').textContent='Nova Tarefa';document.getElementById('t-name').value='';document.getElementById('t-date').value='';document.getElementById('t-obj').innerHTML='<option value="">— tarefa avulsa —</option>'+state.objectives.map(o=>'<option value="'+o.id+'"'+(o.id===objId?' selected':'')+'>'+o.name+'</option>').join('');const krSel=document.getElementById('t-kr'),krGrp=document.getElementById('t-kr-group');krSel.innerHTML='<option value="">— selecione o KR —</option>';if(objId){const o=state.objectives.find(x=>x.id===objId);if(o)o.krs.forEach(k=>{krSel.innerHTML+='<option value="'+k.id+'"'+(k.id===krId?' selected':'')+'>'+k.name+'</option>';});krGrp.style.display='block';}else krGrp.style.display='none';openModal('modal-task');}
 function openEditTask(id){const t=state.tasks.find(x=>x.id===id);if(!t)return;editTaskId=id;document.getElementById('task-modal-title').textContent='Editar Tarefa';document.getElementById('t-name').value=t.name;document.getElementById('t-date').value=t.due_date||'';document.getElementById('t-obj').innerHTML='<option value="">— tarefa avulsa —</option>'+state.objectives.map(o=>'<option value="'+o.id+'"'+(o.id===t.objective_id?' selected':'')+'>'+o.name+'</option>').join('');const krSel=document.getElementById('t-kr'),krGrp=document.getElementById('t-kr-group');krSel.innerHTML='<option value="">— selecione o KR —</option>';if(t.objective_id){const o=state.objectives.find(x=>x.id===t.objective_id);if(o){o.krs.forEach(k=>{krSel.innerHTML+='<option value="'+k.id+'"'+(k.id===t.kr_id?' selected':'')+'>'+k.name+'</option>';});krGrp.style.display='block';}}else krGrp.style.display='none';openModal('modal-task');}
-function openNovaAcao(){editTaskId=null;document.getElementById('task-modal-title').textContent='Nova Ação';document.getElementById('t-name').value='';document.getElementById('t-date').value='';document.getElementById('t-obj').innerHTML='<option value="">— sem vínculo —</option>';document.getElementById('t-kr-group').style.display='none';openModal('modal-task');}
+function openNovoAfazer(){editTaskId=null;document.getElementById('task-modal-title').textContent='Novo Afazer';document.getElementById('t-name').value='';document.getElementById('t-date').value='';document.getElementById('t-obj').innerHTML='<option value="">— sem vínculo —</option>';document.getElementById('t-kr-group').style.display='none';openModal('modal-task');}
 function openLinkModal(tid){linkTaskId=tid;const t=state.tasks.find(x=>x.id===tid);document.getElementById('lnk-obj').innerHTML='<option value="">— sem objetivo —</option>'+state.objectives.map(o=>'<option value="'+o.id+'"'+(t.objective_id===o.id?' selected':'')+'>'+o.name+'</option>').join('');const sel=document.getElementById('lnk-kr'),grp=document.getElementById('lnk-kr-group');sel.innerHTML='<option value="">— selecione o KR —</option>';if(t.objective_id){const o=state.objectives.find(x=>x.id===t.objective_id);if(o&&o.krs.length){o.krs.forEach(kr=>{sel.innerHTML+='<option value="'+kr.id+'"'+(t.kr_id===kr.id?' selected':'')+'>'+kr.name+'</option>';});grp.style.display='block';}else grp.style.display='none';}else grp.style.display='none';openModal('modal-link');}
 function openReschedule(type,id,name,currentDate){rescheduleType=type;rescheduleId=id;document.getElementById('reschedule-title').textContent=type==='task'?'Reagendar Tarefa':'Alterar Data';document.getElementById('reschedule-name').textContent=name;document.getElementById('reschedule-date').value=currentDate||'';openModal('modal-reschedule');}
 window.openReschedule=openReschedule;
@@ -327,7 +327,7 @@ function renderDash(){
   var avg=state.dreams.length?Math.round(state.dreams.reduce(function(a,d){return a+dPct(d.id);},0)/state.dreams.length):0;
   document.getElementById('dash-metrics').innerHTML='<div class="metric"><div class="metric-val">'+state.dreams.length+'</div><div class="metric-label">Sonhos</div></div><div class="metric"><div class="metric-val">'+state.objectives.length+'</div><div class="metric-label">Objetivos</div></div><div class="metric"><div class="metric-val">'+done+'/'+state.tasks.length+'</div><div class="metric-label">Tarefas feitas</div></div><div class="metric"><div class="metric-val">'+avg+'%</div><div class="metric-label">Progresso geral</div></div>';
   var el=document.getElementById('dash-dreams');
-  if(!state.dreams.length){el.innerHTML='<div style="color:var(--text3);padding:24px;text-align:center">Nenhum sonho cadastrado.</div>';}
+  if(!state.dreams.length){el.innerHTML='<div style="color:var(--text3);padding:24px;text-align:center">Nenhum projeto cadastrado.</div>';}
   else{
     el.innerHTML=state.dreams.map(function(d){
       var p=dPct(d.id),objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
@@ -386,7 +386,7 @@ function renderMatrizFull(el,showClassify){
 // ─── RENDER DREAMS ───────────────────────────────────────────────────────────
 function renderDreams(){
   var el=document.getElementById('dreams-list');
-  if(!state.dreams.length){el.innerHTML='<div style="color:var(--text3);padding:24px;text-align:center">Nenhum sonho ainda.</div>';return;}
+  if(!state.dreams.length){el.innerHTML='<div style="color:var(--text3);padding:24px;text-align:center">Nenhum projeto ainda.</div>';return;}
   el.innerHTML=state.dreams.map(function(d){var p=dPct(d.id),bc=dreamBarColor(d.id);return '<div class="dream-card" data-id="'+d.id+'"><div style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1"><div style="font-size:15px;font-weight:700;margin-bottom:4px">'+d.name+'</div><div style="font-size:12px;color:var(--text2);margin-bottom:6px">'+(d.description||'')+'</div><div style="font-size:11px;color:var(--text3)">'+state.objectives.filter(function(o){return o.dream_id===d.id;}).length+' objetivo(s) · '+(d.due_date||'—')+'</div><div class="progress"><div class="progress-fill" style="width:'+p+'%;background:'+bc+'"></div></div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0"><div style="font-size:26px;font-weight:800;color:var(--accent)">'+p+'%</div><div style="display:flex;gap:4px"><button class="btn btn-sm btn-icon edt-dream" data-id="'+d.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-dream" data-id="'+d.id+'">'+trsh()+'</button></div></div></div></div>';}).join('');
   document.querySelectorAll('#dreams-list .dream-card').forEach(function(c){c.addEventListener('click',function(e){if(!e.target.closest('.edt-dream,.del-dream'))nav('dream-detail',parseInt(this.dataset.id));});});
   document.querySelectorAll('.edt-dream').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();openEditDream(parseInt(this.dataset.id));});});
@@ -398,7 +398,7 @@ function renderDreamDetail(did){
   var d=state.dreams.find(function(x){return x.id===did;});if(!d)return;
   var p=dPct(d.id),bc=dreamBarColor(d.id),objs=state.objectives.filter(function(o){return o.dream_id===d.id;});
   document.getElementById('topbar-title').textContent=d.name;
-  var h='<div class="detail-dream"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px"><div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:6px">✦ Sonho</div><div style="font-size:20px;font-weight:800">'+d.name+'</div><div style="font-size:13px;color:var(--text2);margin-top:6px">'+(d.description||'')+'</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:38px;font-weight:800;color:var(--accent);line-height:1">'+p+'%</div><div style="font-size:11px;color:var(--text3)">realizado</div></div></div><div class="progress" style="height:6px"><div class="progress-fill" style="width:'+p+'%;background:'+bc+'"></div></div><div style="font-size:12px;color:var(--text3);margin-top:8px">Prazo: '+(d.due_date||'—')+' · '+objs.length+' objetivo(s)</div></div>';
+  var h='<div class="detail-dream"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px"><div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:6px">✦ Projeto</div><div style="font-size:20px;font-weight:800">'+d.name+'</div><div style="font-size:13px;color:var(--text2);margin-top:6px">'+(d.description||'')+'</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:38px;font-weight:800;color:var(--accent);line-height:1">'+p+'%</div><div style="font-size:11px;color:var(--text3)">realizado</div></div></div><div class="progress" style="height:6px"><div class="progress-fill" style="width:'+p+'%;background:'+bc+'"></div></div><div style="font-size:12px;color:var(--text3);margin-top:8px">Prazo: '+(d.due_date||'—')+' · '+objs.length+' objetivo(s)</div></div>';
   objs.forEach(function(o){
     var op=oPct(o.id),ts=state.tasks.filter(function(t){return t.objective_id===o.id;}),sb=statusBadge(o),obc=objBarColor(o);
     h+='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px"><div style="flex:1;font-size:14px;font-weight:700">'+o.name+'</div><span class="badge '+sb[0]+'">'+sb[1]+'</span><span class="badge '+pcBadge(op)+'">'+op+'%</span>';
@@ -656,6 +656,86 @@ function renderHome(){
   if(!aTotal){h+='<div class="home-empty">Nenhuma ação hoje</div>';}else{todayAcoes.forEach(function(t){h+='<div class="home-item'+(isOverdue(t.due_date)?' home-item-overdue':'')+'"><div class="home-check" data-home-task="'+t.id+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+'</div></div>';});doneAcoes.forEach(function(t){h+='<div class="home-item home-item-done"><div class="home-check done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+'</div></div>';});}
   h+='<div class="home-progress-mini"><div class="home-progress-mini-fill" style="width:'+(aTotal?Math.round(doneAcoes.length/aTotal*100):100)+'%;background:linear-gradient(90deg,#C65D3B,#E8856A)"></div></div></div>';
   h+='</div></div>';el.innerHTML=h;
+  document.getElementById('home-theme-toggle').addEventListener('click',function(){var wrap=document.getElementById('home-wrap'),isLight=wrap.classList.contains('light');wrap.classList.toggle('light',!isLight);localStorage.setItem('eixo_home_theme',isLight?'dark':'light');this.textContent=isLight?'☀️ Claro':'🌙 Escuro';});
+  el.querySelectorAll('.home-check[data-home-task]').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();await toggleTask(parseInt(this.getAttribute('data-home-task')));renderHome();});});
+  el.querySelectorAll('.home-check[data-home-routine]').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();var id=parseInt(this.getAttribute('data-home-routine')),key=this.getAttribute('data-home-key'),r=state.routines.find(function(x){return x.id===id;});if(!r)return;if(!r.checks)r.checks={};r.checks[key]=r.checks[key]===true?null:true;await sbUpdate('routines',r.id,{checks:r.checks});renderHome();});});
+}
+
+// PATCH: sobrescreve renderHome com a lógica correta (hoje + atrasados, 3 quadros)
+function renderHome(){
+  var el=document.getElementById('home-content');if(!el)return;
+  var tod=today(),ds=fmtDate(tod),todDow=tod.getDay(),yr=tod.getFullYear(),mo=tod.getMonth(),dayKey='day'+yr+'-'+mo+'-w'+todDow;
+  var homeTheme=localStorage.getItem('eixo_home_theme')||'dark',q=getTodayQuote(),now=new Date();
+  var dateStr=now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});dateStr=dateStr.charAt(0).toUpperCase()+dateStr.slice(1);
+
+  // Projetos: tarefas com objetivo, atrasadas OU com data hoje
+  var projTasks=state.tasks.filter(function(t){
+    if(t.done||!t.objective_id)return false;
+    if(!t.due_date)return false;
+    var d=t.due_date.substring(0,10);
+    return d===ds||d<ds;
+  });
+  var projDone=state.tasks.filter(function(t){
+    if(!t.done||!t.objective_id)return false;
+    if(!t.due_date)return false;
+    var d=t.due_date.substring(0,10);
+    return d===ds||d<ds;
+  });
+
+  // Rotinas: só as de hoje
+  var todayRoutines=getEventsForDate(ds).filter(function(e){return e.type==='routine';});
+  var doneRoutines=todayRoutines.filter(function(e){var r=state.routines.find(function(x){return x.id===e.id;});return r&&r.checks&&r.checks[dayKey]===true;});
+
+  // Afazeres: tarefas sem objetivo, atrasadas OU com data hoje
+  var afazTasks=state.tasks.filter(function(t){
+    if(t.done||t.objective_id)return false;
+    if(!t.due_date)return false;
+    var d=t.due_date.substring(0,10);
+    return d===ds||d<ds;
+  });
+  var afazDone=state.tasks.filter(function(t){
+    if(!t.done||t.objective_id)return false;
+    if(!t.due_date)return false;
+    var d=t.due_date.substring(0,10);
+    return d===ds||d<ds;
+  });
+
+  var h='<div class="home-wrap'+(homeTheme==='light'?' light':'')+'" id="home-wrap">';
+  h+='<button class="home-theme-btn" id="home-theme-toggle">'+(homeTheme==='light'?'🌙 Escuro':'☀️ Claro')+'</button>';
+  h+='<div><div class="home-greeting">'+getGreeting()+'</div><div class="home-name">Ricardo 👋</div><div class="home-date">'+dateStr+'</div></div>';
+  h+='<div class="home-quote-card"><div class="home-quote-text">'+q[0]+'</div><div class="home-quote-author">— '+q[1]+'</div></div>';
+  h+='<div class="home-cards-grid">';
+
+  // Quadro 1: Projetos
+  var pTotal=projTasks.length+projDone.length;
+  h+='<div class="home-glass-card"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Projetos</div><span class="home-card-count'+(projTasks.length===0?' ok':'')+'">'+projDone.length+'/'+pTotal+'</span></div>';
+  if(!pTotal){h+='<div class="home-empty">Nenhuma tarefa de projeto hoje 🎉</div>';}
+  else{
+    projTasks.forEach(function(t){var ov=t.due_date.substring(0,10)<ds;h+='<div class="home-item'+(ov?' home-item-overdue':'')+'"><div class="home-check" data-home-task="'+t.id+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+(ov?' ⚠':'')+'</div></div>';});
+    projDone.forEach(function(t){h+='<div class="home-item home-item-done"><div class="home-check done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+'</div></div>';});
+  }
+  h+='<div class="home-progress-mini"><div class="home-progress-mini-fill" style="width:'+(pTotal?Math.round(projDone.length/pTotal*100):100)+'%"></div></div></div>';
+
+  // Quadro 2: Rotinas
+  var catDots={gestao:'#7DB5D0',vendas:'#E8856A',pessoal:'#6BBF8E',desenv:'rgba(255,255,255,0.4)'};
+  h+='<div class="home-glass-card"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2.1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Rotinas</div><span class="home-card-count'+(doneRoutines.length===todayRoutines.length&&todayRoutines.length?' ok':'')+'">'+doneRoutines.length+'/'+todayRoutines.length+'</span></div>';
+  if(!todayRoutines.length){h+='<div class="home-empty">Nenhuma rotina hoje</div>';}
+  else{todayRoutines.forEach(function(ev){var r=state.routines.find(function(x){return x.id===ev.id;}),done=r&&r.checks&&r.checks[dayKey]===true;h+='<div class="home-item'+(done?' home-item-done':'')+'"><div class="home-check'+(done?' done':'')+'" data-home-routine="'+ev.id+'" data-home-key="'+dayKey+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-dot" style="background:'+(r?catDots[r.category]||'rgba(255,255,255,0.4)':'rgba(255,255,255,0.4)')+'"></div><div class="home-item-name">'+r.name+'</div></div>';});}
+  h+='<div class="home-progress-mini"><div class="home-progress-mini-fill" style="width:'+(todayRoutines.length?Math.round(doneRoutines.length/todayRoutines.length*100):100)+'%;background:linear-gradient(90deg,#355F79,#7DB5D0)"></div></div></div>';
+
+  // Quadro 3: Afazeres
+  var aTotal=afazTasks.length+afazDone.length;
+  h+='<div class="home-glass-card"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Afazeres</div><span class="home-card-count'+(afazTasks.length===0?' ok':'')+'">'+afazDone.length+'/'+aTotal+'</span></div>';
+  if(!aTotal){h+='<div class="home-empty">Nenhum afazer para hoje 🎉</div>';}
+  else{
+    afazTasks.forEach(function(t){var ov=t.due_date.substring(0,10)<ds;h+='<div class="home-item'+(ov?' home-item-overdue':'')+'"><div class="home-check" data-home-task="'+t.id+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+(ov?' ⚠':'')+'</div></div>';});
+    afazDone.forEach(function(t){h+='<div class="home-item home-item-done"><div class="home-check done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+'</div></div>';});
+  }
+  h+='<div class="home-progress-mini"><div class="home-progress-mini-fill" style="width:'+(aTotal?Math.round(afazDone.length/aTotal*100):100)+'%;background:linear-gradient(90deg,#C65D3B,#E8856A)"></div></div></div>';
+
+  h+='</div></div>';
+  el.innerHTML=h;
+
   document.getElementById('home-theme-toggle').addEventListener('click',function(){var wrap=document.getElementById('home-wrap'),isLight=wrap.classList.contains('light');wrap.classList.toggle('light',!isLight);localStorage.setItem('eixo_home_theme',isLight?'dark':'light');this.textContent=isLight?'☀️ Claro':'🌙 Escuro';});
   el.querySelectorAll('.home-check[data-home-task]').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();await toggleTask(parseInt(this.getAttribute('data-home-task')));renderHome();});});
   el.querySelectorAll('.home-check[data-home-routine]').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();var id=parseInt(this.getAttribute('data-home-routine')),key=this.getAttribute('data-home-key'),r=state.routines.find(function(x){return x.id===id;});if(!r)return;if(!r.checks)r.checks={};r.checks[key]=r.checks[key]===true?null:true;await sbUpdate('routines',r.id,{checks:r.checks});renderHome();});});
