@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -15,8 +16,6 @@
       <div class="auth-logo">E</div>
       <div class="auth-title">Eixo</div>
       <div class="auth-sub">Produtividade com OKRs</div>
-
-      <!-- Login -->
       <div id="auth-login">
         <div class="fg"><label>Email</label><input id="login-email" type="email" placeholder="seu@email.com"></div>
         <div class="fg"><label>Senha</label><input id="login-password" type="password" placeholder="••••••••"></div>
@@ -24,8 +23,6 @@
         <button class="auth-btn" id="btn-login">Entrar</button>
         <div class="auth-switch">Não tem conta? <span id="goto-signup">Criar conta</span></div>
       </div>
-
-      <!-- Signup -->
       <div id="auth-signup" style="display:none">
         <div class="fg"><label>Seu nome</label><input id="signup-name" placeholder="Como quer ser chamado?"></div>
         <div class="fg"><label>Email</label><input id="signup-email" type="email" placeholder="seu@email.com"></div>
@@ -39,9 +36,8 @@
   </div>
 </div>
 
-<!-- APP (hidden until logged in) -->
+<!-- APP -->
 <div id="app-screen" style="display:none">
-  <!-- Sidebar -->
   <div class="mob-overlay" id="mob-overlay"></div>
   <div class="app">
     <div class="sidebar" id="sidebar">
@@ -65,7 +61,7 @@
         </div>
         <div class="nav-sec">OKRs</div>
         <div class="nav-item" id="nav-sonhos" data-page="sonhos">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Sonhos
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Projetos
         </div>
         <div class="nav-item" id="nav-objetivos" data-page="objetivos">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>Objetivos &amp; KRs
@@ -78,7 +74,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2.1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Rotinas
         </div>
         <div class="nav-item" id="nav-acoes" data-page="acoes">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Ações
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Afazeres
         </div>
         <div class="nav-item" id="nav-agenda" data-page="agenda">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Agenda
@@ -110,7 +106,7 @@
         <div class="page active" id="page-home"><div id="home-content"></div></div>
         <div class="page" id="page-dashboard">
           <div class="grid-4" id="dash-metrics"></div>
-          <div style="margin-bottom:14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Meus Sonhos</div>
+          <div style="margin-bottom:14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Meus Projetos</div>
           <div id="dash-dreams"></div>
           <div style="margin:24px 0 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Matriz Foco</div>
           <div id="matriz-dash"></div>
@@ -138,9 +134,7 @@
   </div>
 </div>
 
-<!-- Modais e Glass panel vêm do app.js via innerHTML -->
 <div id="modals-container"></div>
-
 <script src="/app.js"></script>
 </body>
 </html>
