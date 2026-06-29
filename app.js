@@ -901,3 +901,206 @@ function renderAgendaSingleDay(d){
   h+='</div></div>';
   return h;
 }
+
+// ══ PATCH: sidebar wiring para nova estrutura ══
+(function patchSidebar(){
+  // Override closeSidebar
+  window.closeSidebar = function(){
+    var s=document.getElementById('sidebar');
+    var o=document.getElementById('mob-overlay');
+    if(s)s.classList.remove('open');
+    if(o)o.classList.remove('open');
+  };
+})();
+
+// ══ NOVA AGENDA — dias úteis ══
+function getWorkdaysFrom(startDate, count){
+  var days=[], d=new Date(startDate); d.setHours(0,0,0,0);
+  while(days.length<count){
+    var dow=d.getDay();
+    if(dow!==0&&dow!==6) days.push(new Date(d));
+    d.setDate(d.getDate()+1);
+  }
+  return days;
+}
+function getWorkweek(date){
+  // Segunda a sexta da semana atual
+  var d=new Date(date); d.setHours(0,0,0,0);
+  var day=d.getDay();
+  var mon=new Date(d); mon.setDate(d.getDate()-(day===0?6:day-1));
+  var days=[];
+  for(var i=0;i<5;i++){var x=new Date(mon);x.setDate(mon.getDate()+i);days.push(x);}
+  return days;
+}
+
+function renderAgenda(){
+  var el=document.getElementById('agenda-content');
+  if(!el)return;
+  var tod=new Date(); tod.setHours(0,0,0,0);
+  var todStr=fmtDate(tod);
+
+  var dates=[];
+  if(agendaView==='day'){
+    dates=[new Date(agendaDate)];
+  } else if(agendaView==='3days'){
+    dates=getWorkdaysFrom(agendaDate,3);
+  } else if(agendaView==='week'){
+    dates=getWorkweek(agendaDate);
+  } else if(agendaView==='7days'){
+    dates=getWorkdaysFrom(agendaDate,7);
+  }
+
+  // Título
+  var title='';
+  if(dates.length===1){
+    title=WEEKDAYS[dates[0].getDay()]+', '+dates[0].getDate()+' de '+MONTHS[dates[0].getMonth()]+' de '+dates[0].getFullYear();
+  } else {
+    var f=dates[0],l=dates[dates.length-1];
+    title=f.getDate()+'/'+pad(f.getMonth()+1)+' – '+l.getDate()+'/'+pad(l.getMonth()+1)+'/'+l.getFullYear();
+  }
+
+  var h='<div class="agenda-nav">';
+  h+='<div class="agenda-nav-left">';
+  h+='<button class="agenda-nav-arrow" id="ag-prev">‹</button>';
+  h+='<span class="agenda-date-range">'+title+'</span>';
+  h+='<button class="agenda-nav-arrow" id="ag-next">›</button>';
+  var isToday=fmtDate(agendaDate)===todStr;
+  h+='<button class="agenda-today-btn'+(isToday?' active-today':'')+'" id="ag-today">Hoje</button>';
+  h+='</div>';
+  h+='<div class="agenda-views">';
+  ['day','3days','week','7days'].forEach(function(v){
+    var label={day:'Dia','3days':'3 dias',week:'Semana','7days':'7 dias'}[v];
+    h+='<button class="agenda-view-btn'+(agendaView===v?' active':'')+'" data-view="'+v+'">'+label+'</button>';
+  });
+  h+='</div></div>';
+
+  if(dates.length===1){
+    h+=renderAgendaSingleDay(dates[0]);
+  } else {
+    h+='<div class="agenda-cols" style="grid-template-columns:repeat('+dates.length+',1fr)">';
+    dates.forEach(function(d){h+=renderAgendaDayCol(d,todStr);});
+    h+='</div>';
+  }
+
+  el.innerHTML=h;
+
+  document.getElementById('ag-prev').addEventListener('click',function(){moveAgendaNew(-1);});
+  document.getElementById('ag-next').addEventListener('click',function(){moveAgendaNew(1);});
+  document.getElementById('ag-today').addEventListener('click',function(){agendaDate=new Date();renderAgenda();});
+  document.querySelectorAll('.agenda-view-btn').forEach(function(b){
+    b.addEventListener('click',function(){agendaView=this.dataset.view;agendaDate=new Date();renderAgenda();});
+  });
+  document.querySelectorAll('.agenda-event[data-type]').forEach(function(ev){
+    ev.addEventListener('click',async function(e){
+      e.stopPropagation();
+      var type=this.dataset.type,id=parseInt(this.dataset.id),dayKey=this.dataset.daykey;
+      if(type==='task'){await toggleTask(id);renderAgenda();}
+      else if(type==='routine'){
+        var r=state.routines.find(function(x){return x.id===id;});
+        if(!r||!dayKey)return;
+        if(!r.checks)r.checks={};
+        r.checks[dayKey]=r.checks[dayKey]===true?null:true;
+        await sbUpdate('routines',r.id,{checks:r.checks});
+        renderAgenda();
+      }
+    });
+  });
+  document.querySelectorAll('.cal-item .check-box[data-task]').forEach(function(b){
+    b.addEventListener('click',async function(){await toggleTask(parseInt(this.dataset.task));renderAgenda();});
+  });
+  document.querySelectorAll('.cal-item .check-box[data-routine]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      var id=parseInt(this.dataset.routine),key=this.dataset.key;
+      var r=state.routines.find(function(x){return x.id===id;});
+      if(!r)return;if(!r.checks)r.checks={};
+      r.checks[key]=r.checks[key]===true?null:true;
+      await sbUpdate('routines',r.id,{checks:r.checks});
+      renderAgenda();
+    });
+  });
+  document.querySelectorAll('.reschedule-btn').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      openReschedule(this.dataset.type,parseInt(this.dataset.id),this.dataset.name,this.dataset.date);
+    });
+  });
+}
+
+function moveAgendaNew(dir){
+  if(agendaView==='day'){agendaDate.setDate(agendaDate.getDate()+dir);}
+  else if(agendaView==='3days'){agendaDate.setDate(agendaDate.getDate()+dir*3);}
+  else if(agendaView==='week'){agendaDate.setDate(agendaDate.getDate()+dir*7);}
+  else if(agendaView==='7days'){agendaDate.setDate(agendaDate.getDate()+dir*7);}
+  renderAgenda();
+}
+
+function renderAgendaDayCol(d,todStr){
+  var ds=fmtDate(d),isToday=ds===todStr,dow=d.getDay();
+  var yr=d.getFullYear(),mo=d.getMonth(),dayKey='day'+yr+'-'+mo+'-w'+dow;
+  var events=getEventsForDate(ds);
+  var dayNames=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+  var h='<div class="agenda-day-col'+(isToday?' today-col':'')+'">';
+  h+='<div class="agenda-day-hdr"><div class="agenda-day-name">'+dayNames[dow]+'</div><div class="agenda-day-num">'+d.getDate()+'</div></div>';
+  h+='<div class="agenda-day-body">';
+  if(!events.length){
+    h+='<div class="agenda-empty">Sem eventos</div>';
+  } else {
+    events.forEach(function(ev){
+      var isDone=ev.done,isOverdue=ev.overdue;
+      var cls='agenda-event ';
+      if(ev.type==='task') cls+='agenda-event-task'+(isDone?' done':isOverdue?' overdue':'');
+      else cls+='agenda-event-routine'+(isDone?' done':'');
+      var evDate=ev.type==='task'?(state.tasks.find(function(x){return x.id===ev.id;})||{}).due_date||ds:ds;
+      h+='<div class="'+cls+'" data-type="'+ev.type+'" data-id="'+ev.id+'" data-daykey="'+(ev.dayKey||dayKey)+'" data-name="'+ev.name.replace(/"/g,'&quot;')+'" data-date="'+evDate+'">';
+      h+='<div class="agenda-event-check"><svg viewBox="0 0 24 24">'+(isDone?'<polyline points="20 6 9 17 4 12"/>':'')+'</svg></div>';
+      h+='<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">'+ev.name+'</span>';
+      h+='</div>';
+    });
+  }
+  h+='</div></div>';
+  return h;
+}
+
+function renderAgendaSingleDay(d){
+  var ds=fmtDate(d),dow=d.getDay(),yr=d.getFullYear(),mo=d.getMonth(),dayKey='day'+yr+'-'+mo+'-w'+dow;
+  var events=getEventsForDate(ds);
+  var allTasks=events.filter(function(e){return e.type==='task';});
+  var routines=events.filter(function(e){return e.type==='routine';});
+  var okrTasks=allTasks.filter(function(e){var t=state.tasks.find(function(x){return x.id===e.id;});return t&&t.objective_id;});
+  var freeTasks=allTasks.filter(function(e){var t=state.tasks.find(function(x){return x.id===e.id;});return t&&!t.objective_id;});
+  var catColors={gestao:'var(--teal)',vendas:'var(--accent)',pessoal:'#2E7D52',desenv:'var(--navy)'};
+  var catNames={gestao:'Gestão',vendas:'Vendas',pessoal:'Pessoal',desenv:'Desenvolvimento'};
+  var freqLabel={daily:'Diária',weekdays:'Seg–Sex',weekly:'Semanal',monthly:'Mensal',custom_day:'Personalizada'};
+  function taskRow(ev){
+    var t=state.tasks.find(function(x){return x.id===ev.id;});
+    var obj=t?state.objectives.find(function(o){return o.id===t.objective_id;}):null;
+    var tDate=t&&t.due_date?t.due_date.substring(0,10):ds;
+    return '<div class="cal-item"><div class="check-box'+(ev.done?' done':'')+'" data-task="'+ev.id+'">'+chk()+'</div><div style="flex:1"><div style="font-size:13px;font-weight:500;'+(ev.done?'text-decoration:line-through;color:var(--text3);':ev.overdue?'color:var(--red);':'')+'">'
+      +ev.name+(ev.overdue?' ⚠':'')+'</div>'+(obj?'<div style="font-size:11px;color:var(--teal);margin-top:2px">'+obj.name+'</div>':'')+'</div>'
+      +'<button class="btn btn-sm btn-icon reschedule-btn" data-type="task" data-id="'+ev.id+'" data-name="'+ev.name.replace(/"/g,'&quot;')+'" data-date="'+tDate+'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button></div>';
+  }
+  var h='<div class="agenda-single-day">';
+  h+='<div class="agenda-section"><div class="agenda-section-title">🎯 Tarefas de Projetos</div>';
+  if(!okrTasks.length) h+='<p style="font-size:13px;color:var(--text3)">Nenhuma tarefa de projeto para hoje.</p>';
+  else okrTasks.forEach(function(ev){h+=taskRow(ev);});
+  h+='</div>';
+  if(freeTasks.length){
+    h+='<div class="agenda-section"><div class="agenda-section-title">⚡ Afazeres do Dia</div>';
+    freeTasks.forEach(function(ev){h+=taskRow(ev);});
+    h+='</div>';
+  }
+  var routineRows='';
+  ['gestao','vendas','pessoal','desenv'].forEach(function(cat){
+    var cr=routines.filter(function(e){return e.cat===cat;});if(!cr.length)return;
+    routineRows+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--text3);margin:10px 0 6px;letter-spacing:1px">'+catNames[cat]+'</div>';
+    cr.forEach(function(ev){
+      var r=state.routines.find(function(x){return x.id===ev.id;}),checked=r&&r.checks&&r.checks[dayKey]===true;
+      var fl=r?(freqLabel[r.frequency]||r.frequency):'';if(r&&r.time)fl+=' · '+r.time;
+      routineRows+='<div class="cal-item"><div class="check-box'+(checked?' done':'')+'" data-routine="'+ev.id+'" data-key="'+dayKey+'">'+chk()+'</div><div class="cal-item-dot" style="background:'+catColors[cat]+'"></div><span style="font-size:13px;font-weight:500;flex:1;'+(checked?'text-decoration:line-through;color:var(--text3)':'')+'">'+r.name+'</span><span class="badge badge-gray" style="font-size:10px">'+fl+'</span></div>';
+    });
+  });
+  h+='<div class="agenda-section"><div class="agenda-section-title">🔄 Rotinas</div>';
+  h+=routines.length?routineRows:'<p style="font-size:13px;color:var(--text3)">Nenhuma rotina para hoje.</p>';
+  h+='</div></div>';
+  return h;
+}
