@@ -1104,3 +1104,275 @@ function renderAgendaSingleDay(d){
   h+='</div></div>';
   return h;
 }
+
+// ══ PATCH NAV — novas páginas ══
+(function(){
+  var origNav = nav;
+  nav = function(page, extra){
+    // Mapear nav-projetos-dados para sonhos
+    if(page==='projetos-dados') page='sonhos';
+    origNav(page, extra);
+
+    // Renderizar páginas novas
+    if(page==='perfil') renderPerfil();
+    if(page==='senha') renderSenha();
+  };
+
+  // Wire novos nav items após initApp
+  var origInitApp = initApp;
+  initApp = async function(){
+    await origInitApp();
+    // Wire nav items não cobertos
+    document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
+      item.addEventListener('click', function(){
+        nav(this.dataset.page);
+      });
+    });
+  };
+})();
+
+// ══ CASCATA DE PROJETOS ══
+var cascataStack = []; // [{type:'projects'}, {type:'objectives', dreamId}, {type:'tasks', objId}]
+
+function renderCascata(){
+  var el = document.getElementById('cascata-content');
+  if(!el) return;
+
+  var level = cascataStack.length;
+
+  // Breadcrumb
+  var bc = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:24px;flex-wrap:wrap">';
+  bc += '<span class="bc-item" data-level="0" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px">Projetos</span>';
+  if(level>=1){
+    var dream = state.dreams.find(function(d){return d.id===cascataStack[0].dreamId;});
+    bc += '<span style="color:var(--text3)">›</span>';
+    bc += '<span class="bc-item" data-level="1" style="cursor:pointer;color:'+(level===1?'var(--navy)':'var(--accent)')+';font-weight:700;font-size:13px">'+(dream?dream.name:'')+'</span>';
+  }
+  if(level>=2){
+    var obj = state.objectives.find(function(o){return o.id===cascataStack[1].objId;});
+    bc += '<span style="color:var(--text3)">›</span>';
+    bc += '<span style="color:var(--navy);font-weight:700;font-size:13px">'+(obj?obj.name:'')+'</span>';
+  }
+  bc += '</div>';
+
+  var h = bc;
+
+  if(level===0){
+    // Lista de projetos
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">';
+    if(!state.dreams.length){
+      h += '<div style="color:var(--text3);padding:24px;text-align:center;grid-column:1/-1">Nenhum projeto. Crie um em Dados → Projetos.</div>';
+    } else {
+      state.dreams.forEach(function(d){
+        var p=dPct(d.id), bc2=dreamBarColor(d.id);
+        var objCount=state.objectives.filter(function(o){return o.dream_id===d.id;}).length;
+        h += '<div class="dream-card cascata-project" data-id="'+d.id+'" style="cursor:pointer">';
+        h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">';
+        h += '<div style="flex:1"><div style="font-size:16px;font-weight:700;margin-bottom:6px">'+d.name+'</div>';
+        h += '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">'+(d.description||'Sem descrição')+'</div>';
+        h += '<div style="font-size:11px;color:var(--text3)">'+objCount+' objetivo(s) · Prazo: '+(d.due_date||'—')+'</div>';
+        h += '<div class="progress"><div class="progress-fill" style="width:'+p+'%;background:'+bc2+'"></div></div></div>';
+        h += '<div style="font-size:28px;font-weight:800;color:var(--accent)">'+p+'%</div></div></div>';
+      });
+    }
+    h += '</div>';
+
+  } else if(level===1){
+    // Lista de objetivos do projeto
+    var dreamId = cascataStack[0].dreamId;
+    var objs = state.objectives.filter(function(o){return o.dream_id===dreamId;});
+    if(!objs.length){
+      h += '<div style="color:var(--text3);padding:24px;text-align:center">Nenhum objetivo neste projeto.</div>';
+    } else {
+      h += '<div style="display:flex;flex-direction:column;gap:10px">';
+      objs.forEach(function(o){
+        var op=oPct(o.id), sb=statusBadge(o), obc=objBarColor(o);
+        h += '<div class="card cascata-obj" data-id="'+o.id+'" style="cursor:pointer;transition:all 0.15s">';
+        h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
+        h += '<div style="flex:1"><div style="font-size:15px;font-weight:700;margin-bottom:4px">'+o.name+'</div>';
+        h += '<div style="font-size:12px;color:var(--text3)">Prazo: '+(o.due_date||'—')+'</div></div>';
+        h += '<span class="badge '+sb[0]+'">'+sb[1]+'</span>';
+        h += '<span class="badge '+pcBadge(op)+'">'+op+'%</span>';
+        h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
+        h += '</div>';
+        h += '<div class="progress"><div class="progress-fill" style="width:'+op+'%;background:'+obc+'"></div></div>';
+        // KRs preview
+        if(o.krs&&o.krs.length){
+          h += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">';
+          o.krs.forEach(function(kr){h += '<span class="badge badge-gray">'+kr.name+'</span>';});
+          h += '</div>';
+        }
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+
+  } else if(level===2){
+    // Tarefas do objetivo
+    var objId = cascataStack[1].objId;
+    var obj = state.objectives.find(function(o){return o.id===objId;});
+    var tasks = state.tasks.filter(function(t){return t.objective_id===objId;});
+    tasks.sort(function(a,b){if(!a.due_date&&!b.due_date)return 0;if(!a.due_date)return 1;if(!b.due_date)return -1;return a.due_date.localeCompare(b.due_date);});
+
+    // KRs com suas tarefas
+    if(obj&&obj.krs&&obj.krs.length){
+      obj.krs.forEach(function(kr){
+        var krTasks=tasks.filter(function(t){return t.kr_id===kr.id;});
+        var krd=krTasks.filter(function(t){return t.done;}).length;
+        var kp=pct(krd,krTasks.length);
+        h += '<div class="card" style="margin-bottom:12px">';
+        h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
+        h += '<div class="kr-dot" style="background:'+(kp===100?'var(--green)':kp>0?'var(--accent)':'var(--border2)')+'"></div>';
+        h += '<div style="flex:1;font-size:14px;font-weight:700">'+kr.name+'</div>';
+        h += '<span class="badge '+pcBadge(kp)+'">'+kp+'%</span></div>';
+        if(!krTasks.length){
+          h += '<div style="font-size:13px;color:var(--text3);padding:8px 0">Nenhuma tarefa neste KR.</div>';
+        } else {
+          krTasks.forEach(function(t){
+            var ov=!t.done&&isOverdue(t.due_date);
+            h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">';
+            h += '<div class="check-box'+(t.done?' done':'')+' cascata-task-check" data-id="'+t.id+'">'+chk()+'</div>';
+            h += '<span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red);font-weight:600':'')+'">'+t.name+(ov?' ⚠':'')+'</span>';
+            h += (t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'');
+            h += '</div>';
+          });
+        }
+        h += '</div>';
+      });
+    }
+
+    // Tarefas sem KR
+    var semKR=tasks.filter(function(t){return !t.kr_id;});
+    if(semKR.length){
+      h += '<div class="card"><div style="font-size:13px;font-weight:700;color:var(--text3);margin-bottom:12px">Sem KR vinculado</div>';
+      semKR.forEach(function(t){
+        var ov=!t.done&&isOverdue(t.due_date);
+        h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">';
+        h += '<div class="check-box'+(t.done?' done':'')+' cascata-task-check" data-id="'+t.id+'">'+chk()+'</div>';
+        h += '<span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red)':'')+'">'+t.name+'</span>';
+        h += (t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'');
+        h += '</div>';
+      });
+      h += '</div>';
+    }
+
+    if(!tasks.length){
+      h += '<div style="color:var(--text3);padding:24px;text-align:center">Nenhuma tarefa neste objetivo.</div>';
+    }
+  }
+
+  el.innerHTML = h;
+
+  // Wire breadcrumb
+  el.querySelectorAll('.bc-item').forEach(function(b){
+    b.addEventListener('click', function(){
+      var lvl=parseInt(this.dataset.level);
+      cascataStack=cascataStack.slice(0,lvl);
+      renderCascata();
+    });
+  });
+
+  // Wire projeto click
+  el.querySelectorAll('.cascata-project').forEach(function(c){
+    c.addEventListener('click', function(){
+      cascataStack=[{type:'objectives',dreamId:parseInt(this.dataset.id)}];
+      renderCascata();
+    });
+  });
+
+  // Wire objetivo click
+  el.querySelectorAll('.cascata-obj').forEach(function(c){
+    c.addEventListener('click', function(){
+      cascataStack=[cascataStack[0],{type:'tasks',objId:parseInt(this.dataset.id)}];
+      renderCascata();
+    });
+  });
+
+  // Wire task checkbox
+  el.querySelectorAll('.cascata-task-check').forEach(function(b){
+    b.addEventListener('click', async function(){
+      await toggleTask(parseInt(this.dataset.id));
+      renderCascata();
+    });
+  });
+}
+
+// ══ PERFIL ══
+function renderPerfil(){
+  var el=document.getElementById('perfil-content');
+  if(!el)return;
+  var name=currentUser?.name||'', email=currentUser?.email||'';
+  el.innerHTML=`
+    <div class="card" style="max-width:480px">
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Perfil do Usuário</h2>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:24px">Atualize seu nome e email.</p>
+      <div class="fg"><label>Nome</label><input id="perfil-name" value="${name}" placeholder="Seu nome"></div>
+      <div class="fg"><label>Email</label><input id="perfil-email" type="email" value="${email}" placeholder="seu@email.com"></div>
+      <div id="perfil-msg" style="display:none;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
+      <button class="btn btn-accent" id="btn-save-perfil">Salvar alterações</button>
+    </div>`;
+
+  document.getElementById('btn-save-perfil').addEventListener('click', async function(){
+    var name=document.getElementById('perfil-name').value.trim();
+    var email=document.getElementById('perfil-email').value.trim();
+    var msg=document.getElementById('perfil-msg');
+    if(!name||!email){msg.style.display='block';msg.style.background='var(--red-bg)';msg.style.color='var(--red)';msg.textContent='Preencha todos os campos.';return;}
+    this.textContent='Salvando...';this.disabled=true;
+    try{
+      var res=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+authToken},body:JSON.stringify({action:'update_profile',name,email})});
+      var data=await res.json();
+      if(data.error){msg.style.background='var(--red-bg)';msg.style.color='var(--red)';msg.textContent=data.error;}
+      else{
+        currentUser={...currentUser,name,email};
+        localStorage.setItem('eixo_user',JSON.stringify(currentUser));
+        msg.style.background='var(--green-bg)';msg.style.color='var(--green)';msg.textContent='✓ Salvo com sucesso!';
+      }
+    }catch(e){msg.style.background='var(--red-bg)';msg.style.color='var(--red)';msg.textContent='Erro ao salvar.';}
+    msg.style.display='block';
+    this.textContent='Salvar alterações';this.disabled=false;
+  });
+}
+
+// ══ SENHA ══
+function renderSenha(){
+  var el=document.getElementById('senha-content');
+  if(!el)return;
+  el.innerHTML=`
+    <div class="card" style="max-width:480px">
+      <h2 style="font-size:18px;font-weight:700;margin-bottom:6px">Alterar Senha</h2>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:24px">Digite sua nova senha abaixo.</p>
+      <div class="fg"><label>Nova senha</label><input id="senha-nova" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fg"><label>Confirmar nova senha</label><input id="senha-confirm" type="password" placeholder="Repita a nova senha"></div>
+      <div id="senha-msg" style="display:none;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
+      <button class="btn btn-accent" id="btn-save-senha">Alterar senha</button>
+    </div>`;
+
+  document.getElementById('btn-save-senha').addEventListener('click', async function(){
+    var nova=document.getElementById('senha-nova').value;
+    var confirm=document.getElementById('senha-confirm').value;
+    var msg=document.getElementById('senha-msg');
+    if(nova.length<6){msg.style.display='block';msg.style.background='var(--red-bg)';msg.style.color='var(--red)';msg.textContent='Senha precisa ter ao menos 6 caracteres.';return;}
+    if(nova!==confirm){msg.style.display='block';msg.style.background='var(--red-bg)';msg.style.color='var(--red)';msg.textContent='As senhas não conferem.';return;}
+    this.textContent='Alterando...';this.disabled=true;
+    try{
+      var res=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+authToken},body:JSON.stringify({action:'update_password',password:nova})});
+      var data=await res.json();
+      if(data.error){msg.style.background='var(--red-bg)';msg.style.color='var(--red)';msg.textContent=data.error;}
+      else{msg.style.background='var(--green-bg)';msg.style.color='var(--green)';msg.textContent='✓ Senha alterada com sucesso!';document.getElementById('senha-nova').value='';document.getElementById('senha-confirm').value='';}
+    }catch(e){msg.style.background='var(--red-bg)';msg.style.color='var(--red)';msg.textContent='Erro ao alterar senha.';}
+    msg.style.display='block';
+    this.textContent='Alterar senha';this.disabled=false;
+  });
+}
+
+// Wire cascata no nav
+document.addEventListener('DOMContentLoaded', function(){
+  var navSonhos=document.getElementById('nav-sonhos');
+  if(navSonhos){
+    navSonhos.addEventListener('click',function(){
+      cascataStack=[];
+      nav('cascata');
+      renderCascata();
+    });
+  }
+});
