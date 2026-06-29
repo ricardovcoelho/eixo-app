@@ -364,3 +364,62 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .home-wrap.light .home-theme-btn{background:rgba(27,27,58,0.05);border-color:rgba(27,27,58,0.1);color:var(--text3)}
 .home-wrap.light .home-theme-btn:hover{background:rgba(27,27,58,0.1);color:var(--text)}
 @media(max-width:640px){.home-wrap{padding:28px 20px;gap:24px}.home-name{font-size:32px}.home-cards-grid{grid-template-columns:1fr}}
+
+/* ══ SIDEBAR EXPANSÍVEL ══ */
+.sidebar{
+  width:64px;
+  transition:width 0.25s ease;
+  overflow:hidden;
+}
+.sidebar:hover{
+  width:200px;
+}
+.sidebar:hover .nav-item-label{
+  opacity:1;
+  transform:translateX(0);
+}
+.sidebar:hover .nav-item::after{
+  display:none;
+}
+.sidebar:hover .sidebar-logo-text{
+  opacity:1;
+  transform:translateX(0);
+}
+.nav-item{
+  width:100%;
+  justify-content:flex-start;
+  padding:0 13px;
+  gap:12px;
+  border-radius:12px;
+}
+.nav-item-label{
+  font-size:13px;
+  font-weight:600;
+  color:inherit;
+  white-space:nowrap;
+  opacity:0;
+  transform:translateX(-8px);
+  transition:all 0.2s ease;
+}
+.sidebar-logo{
+  width:100%;
+  padding:16px 13px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:8px;
+}
+.sidebar-logo-text{
+  font-size:16px;
+  font-weight:800;
+  color:#fff;
+  letter-spacing:-0.5px;
+  white-space:nowrap;
+  opacity:0;
+  transform:translateX(-8px);
+  transition:all 0.2s ease;
+}
+.nav-divider{
+  width:calc(100% - 26px);
+  margin:6px 13px;
+}
