@@ -1132,12 +1132,11 @@ function renderAgendaSingleDay(d){
 })();
 
 // ══ CASCATA DE PROJETOS ══
-var cascataStack = []; // [{type:'projects'}, {type:'objectives', dreamId}, {type:'tasks', objId}]
+var cascataStack = [];
 
 function renderCascata(){
   var el = document.getElementById('cascata-content');
   if(!el) return;
-
   var level = cascataStack.length;
 
   // Breadcrumb
@@ -1145,28 +1144,32 @@ function renderCascata(){
   bc += '<span class="bc-item" data-level="0" style="cursor:pointer;color:var(--accent);font-weight:700;font-size:13px">Projetos</span>';
   if(level>=1){
     var dream = state.dreams.find(function(d){return d.id===cascataStack[0].dreamId;});
-    bc += '<span style="color:var(--text3)">›</span>';
+    bc += '<span style="color:var(--text3);font-size:13px">›</span>';
     bc += '<span class="bc-item" data-level="1" style="cursor:pointer;color:'+(level===1?'var(--navy)':'var(--accent)')+';font-weight:700;font-size:13px">'+(dream?dream.name:'')+'</span>';
   }
   if(level>=2){
-    var obj = state.objectives.find(function(o){return o.id===cascataStack[1].objId;});
-    bc += '<span style="color:var(--text3)">›</span>';
-    bc += '<span style="color:var(--navy);font-weight:700;font-size:13px">'+(obj?obj.name:'')+'</span>';
+    var obj2 = state.objectives.find(function(o){return o.id===cascataStack[1].objId;});
+    bc += '<span style="color:var(--text3);font-size:13px">›</span>';
+    bc += '<span style="color:var(--navy);font-weight:700;font-size:13px">'+(obj2?obj2.name:'')+'</span>';
   }
   bc += '</div>';
 
   var h = bc;
 
+  // ── NÍVEL 0: Lista de Projetos ──
   if(level===0){
-    // Lista de projetos
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Seus Projetos</div>';
+    h += '<button class="btn btn-accent" id="btn-novo-projeto-cascata">+ Novo Projeto</button>';
+    h += '</div>';
     h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">';
     if(!state.dreams.length){
-      h += '<div style="color:var(--text3);padding:24px;text-align:center;grid-column:1/-1">Nenhum projeto. Crie um em Dados → Projetos.</div>';
+      h += '<div style="color:var(--text3);padding:32px;text-align:center;grid-column:1/-1;font-size:13px">Nenhum projeto ainda.<br>Clique em "+ Novo Projeto" para começar.</div>';
     } else {
       state.dreams.forEach(function(d){
         var p=dPct(d.id), bc2=dreamBarColor(d.id);
         var objCount=state.objectives.filter(function(o){return o.dream_id===d.id;}).length;
-        h += '<div class="dream-card cascata-project" data-id="'+d.id+'" style="cursor:pointer">';
+        h += '<div class="dream-card cascata-project" data-id="'+d.id+'">';
         h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">';
         h += '<div style="flex:1"><div style="font-size:16px;font-weight:700;margin-bottom:6px">'+d.name+'</div>';
         h += '<div style="font-size:12px;color:var(--text3);margin-bottom:8px">'+(d.description||'Sem descrição')+'</div>';
@@ -1177,26 +1180,47 @@ function renderCascata(){
     }
     h += '</div>';
 
+  // ── NÍVEL 1: Objetivos do Projeto ──
   } else if(level===1){
-    // Lista de objetivos do projeto
     var dreamId = cascataStack[0].dreamId;
+    var dream1 = state.dreams.find(function(d){return d.id===dreamId;});
     var objs = state.objectives.filter(function(o){return o.dream_id===dreamId;});
+
+    // Header do projeto
+    if(dream1){
+      var p1=dPct(dreamId), bc3=dreamBarColor(dreamId);
+      h += '<div class="detail-dream" style="margin-bottom:20px">';
+      h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">';
+      h += '<div><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:6px">✦ Projeto</div>';
+      h += '<div style="font-size:20px;font-weight:800">'+dream1.name+'</div>';
+      h += (dream1.description?'<div style="font-size:13px;color:var(--text2);margin-top:4px">'+dream1.description+'</div>':'');
+      h += '</div><div style="text-align:right"><div style="font-size:36px;font-weight:800;color:var(--accent);line-height:1">'+p1+'%</div><div style="font-size:11px;color:var(--text3)">realizado</div></div></div>';
+      h += '<div class="progress" style="margin-top:12px"><div class="progress-fill" style="width:'+p1+'%;background:'+bc3+'"></div></div>';
+      h += '<div style="font-size:12px;color:var(--text3);margin-top:8px">Prazo: '+(dream1.due_date||'—')+' · '+objs.length+' objetivo(s)</div>';
+      h += '</div>';
+    }
+
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Objetivos</div>';
+    h += '<button class="btn btn-accent" id="btn-novo-obj-cascata">+ Novo Objetivo</button>';
+    h += '</div>';
+
     if(!objs.length){
-      h += '<div style="color:var(--text3);padding:24px;text-align:center">Nenhum objetivo neste projeto.</div>';
+      h += '<div style="color:var(--text3);padding:32px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:13px">Nenhum objetivo ainda.<br>Clique em "+ Novo Objetivo" para começar.</div>';
     } else {
       h += '<div style="display:flex;flex-direction:column;gap:10px">';
       objs.forEach(function(o){
         var op=oPct(o.id), sb=statusBadge(o), obc=objBarColor(o);
+        var taskCount=state.tasks.filter(function(t){return t.objective_id===o.id;}).length;
         h += '<div class="card cascata-obj" data-id="'+o.id+'" style="cursor:pointer;transition:all 0.15s">';
         h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
         h += '<div style="flex:1"><div style="font-size:15px;font-weight:700;margin-bottom:4px">'+o.name+'</div>';
-        h += '<div style="font-size:12px;color:var(--text3)">Prazo: '+(o.due_date||'—')+'</div></div>';
+        h += '<div style="font-size:12px;color:var(--text3)">'+taskCount+' tarefa(s) · Prazo: '+(o.due_date||'—')+'</div></div>';
         h += '<span class="badge '+sb[0]+'">'+sb[1]+'</span>';
         h += '<span class="badge '+pcBadge(op)+'">'+op+'%</span>';
         h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
         h += '</div>';
         h += '<div class="progress"><div class="progress-fill" style="width:'+op+'%;background:'+obc+'"></div></div>';
-        // KRs preview
         if(o.krs&&o.krs.length){
           h += '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">';
           o.krs.forEach(function(kr){h += '<span class="badge badge-gray">'+kr.name+'</span>';});
@@ -1207,30 +1231,53 @@ function renderCascata(){
       h += '</div>';
     }
 
+  // ── NÍVEL 2: KRs e Tarefas do Objetivo ──
   } else if(level===2){
-    // Tarefas do objetivo
     var objId = cascataStack[1].objId;
     var obj = state.objectives.find(function(o){return o.id===objId;});
     var tasks = state.tasks.filter(function(t){return t.objective_id===objId;});
     tasks.sort(function(a,b){if(!a.due_date&&!b.due_date)return 0;if(!a.due_date)return 1;if(!b.due_date)return -1;return a.due_date.localeCompare(b.due_date);});
 
-    // KRs com suas tarefas
+    // Header do objetivo
+    if(obj){
+      var op2=oPct(objId), sb2=statusBadge(obj), obc2=objBarColor(obj);
+      h += '<div class="card" style="margin-bottom:20px;background:linear-gradient(135deg,var(--teal-bg),var(--bg2))">';
+      h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
+      h += '<div style="flex:1"><div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--teal);font-weight:700;margin-bottom:4px">Objetivo</div>';
+      h += '<div style="font-size:18px;font-weight:800">'+obj.name+'</div>';
+      h += '<div style="font-size:12px;color:var(--text3);margin-top:2px">Prazo: '+(obj.due_date||'—')+'</div></div>';
+      h += '<span class="badge '+sb2[0]+'">'+sb2[1]+'</span>';
+      h += '<div style="font-size:30px;font-weight:800;color:var(--teal)">'+op2+'%</div>';
+      h += '</div>';
+      h += '<div class="progress" style="margin-top:12px"><div class="progress-fill" style="width:'+op2+'%;background:'+obc2+'"></div></div>';
+      h += '</div>';
+    }
+
+    // KRs com tarefas
     if(obj&&obj.krs&&obj.krs.length){
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+      h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">KRs e Tarefas</div>';
+      h += '<div style="display:flex;gap:8px"><button class="btn btn-sm" id="btn-novo-kr-cascata">+ Novo KR</button><button class="btn btn-accent btn-sm" id="btn-nova-tarefa-cascata">+ Nova Tarefa</button></div>';
+      h += '</div>';
+
       obj.krs.forEach(function(kr){
         var krTasks=tasks.filter(function(t){return t.kr_id===kr.id;});
         var krd=krTasks.filter(function(t){return t.done;}).length;
         var kp=pct(krd,krTasks.length);
+        var col=kp===100?'var(--green)':kp>0?'var(--accent)':'var(--border2)';
         h += '<div class="card" style="margin-bottom:12px">';
-        h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
-        h += '<div class="kr-dot" style="background:'+(kp===100?'var(--green)':kp>0?'var(--accent)':'var(--border2)')+'"></div>';
+        h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">';
+        h += '<div class="kr-dot" style="background:'+col+'"></div>';
         h += '<div style="flex:1;font-size:14px;font-weight:700">'+kr.name+'</div>';
-        h += '<span class="badge '+pcBadge(kp)+'">'+kp+'%</span></div>';
+        if(kp>0||krTasks.length) h += '<span class="badge '+pcBadge(kp)+'">'+kp+'%</span>';
+        h += '<button class="btn btn-sm add-task-this-kr" data-krid="'+kr.id+'" data-objid="'+objId+'">+ Tarefa</button>';
+        h += '</div>';
         if(!krTasks.length){
-          h += '<div style="font-size:13px;color:var(--text3);padding:8px 0">Nenhuma tarefa neste KR.</div>';
+          h += '<div style="font-size:12px;color:var(--text3);padding:8px 0 4px">Nenhuma tarefa. Clique em "+ Tarefa".</div>';
         } else {
           krTasks.forEach(function(t){
             var ov=!t.done&&isOverdue(t.due_date);
-            h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">';
+            h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">';
             h += '<div class="check-box'+(t.done?' done':'')+' cascata-task-check" data-id="'+t.id+'">'+chk()+'</div>';
             h += '<span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red);font-weight:600':'')+'">'+t.name+(ov?' ⚠':'')+'</span>';
             h += (t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'');
@@ -1239,15 +1286,22 @@ function renderCascata(){
         }
         h += '</div>';
       });
+    } else {
+      // Sem KRs ainda
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+      h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">KRs e Tarefas</div>';
+      h += '<div style="display:flex;gap:8px"><button class="btn btn-sm" id="btn-novo-kr-cascata">+ Novo KR</button><button class="btn btn-accent btn-sm" id="btn-nova-tarefa-cascata">+ Nova Tarefa</button></div>';
+      h += '</div>';
+      h += '<div style="color:var(--text3);padding:24px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);font-size:13px">Nenhum KR ainda. Clique em "+ Novo KR".</div>';
     }
 
     // Tarefas sem KR
     var semKR=tasks.filter(function(t){return !t.kr_id;});
     if(semKR.length){
-      h += '<div class="card"><div style="font-size:13px;font-weight:700;color:var(--text3);margin-bottom:12px">Sem KR vinculado</div>';
+      h += '<div class="card" style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Sem KR vinculado</div>';
       semKR.forEach(function(t){
         var ov=!t.done&&isOverdue(t.due_date);
-        h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">';
+        h += '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">';
         h += '<div class="check-box'+(t.done?' done':'')+' cascata-task-check" data-id="'+t.id+'">'+chk()+'</div>';
         h += '<span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red)':'')+'">'+t.name+'</span>';
         h += (t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'');
@@ -1255,24 +1309,19 @@ function renderCascata(){
       });
       h += '</div>';
     }
-
-    if(!tasks.length){
-      h += '<div style="color:var(--text3);padding:24px;text-align:center">Nenhuma tarefa neste objetivo.</div>';
-    }
   }
 
   el.innerHTML = h;
 
-  // Wire breadcrumb
+  // ── Wire breadcrumb ──
   el.querySelectorAll('.bc-item').forEach(function(b){
     b.addEventListener('click', function(){
-      var lvl=parseInt(this.dataset.level);
-      cascataStack=cascataStack.slice(0,lvl);
+      cascataStack=cascataStack.slice(0,parseInt(this.dataset.level));
       renderCascata();
     });
   });
 
-  // Wire projeto click
+  // ── Wire clique no projeto ──
   el.querySelectorAll('.cascata-project').forEach(function(c){
     c.addEventListener('click', function(){
       cascataStack=[{type:'objectives',dreamId:parseInt(this.dataset.id)}];
@@ -1280,7 +1329,7 @@ function renderCascata(){
     });
   });
 
-  // Wire objetivo click
+  // ── Wire clique no objetivo ──
   el.querySelectorAll('.cascata-obj').forEach(function(c){
     c.addEventListener('click', function(){
       cascataStack=[cascataStack[0],{type:'tasks',objId:parseInt(this.dataset.id)}];
@@ -1288,11 +1337,65 @@ function renderCascata(){
     });
   });
 
-  // Wire task checkbox
+  // ── Wire checkboxes ──
   el.querySelectorAll('.cascata-task-check').forEach(function(b){
     b.addEventListener('click', async function(){
       await toggleTask(parseInt(this.dataset.id));
       renderCascata();
+    });
+  });
+
+  // ── Wire + Novo Projeto ──
+  var btnNovoProjeto=document.getElementById('btn-novo-projeto-cascata');
+  if(btnNovoProjeto) btnNovoProjeto.addEventListener('click',function(){openModal('modal-dream');});
+
+  // ── Wire + Novo Objetivo ──
+  var btnNovoObj=document.getElementById('btn-novo-obj-cascata');
+  if(btnNovoObj) btnNovoObj.addEventListener('click',function(){
+    var dreamId=cascataStack[0]&&cascataStack[0].dreamId;
+    editObjId=null;
+    document.getElementById('obj-modal-title').textContent='Novo Objetivo';
+    document.getElementById('o-name').value='';
+    document.getElementById('o-date').value='';
+    document.getElementById('o-status').value='on-track';
+    document.getElementById('o-dream').innerHTML='<option value="">— nenhum —</option>'+state.dreams.map(function(d){return '<option value="'+d.id+'"'+(d.id===dreamId?' selected':'')+'>'+d.name+'</option>';}).join('');
+    document.getElementById('kr-inputs').innerHTML='';
+    addKR();addKR();
+    // After save, refresh cascata
+    openModal('modal-obj');
+  });
+
+  // ── Wire + Novo KR ──
+  var btnNovoKr=document.getElementById('btn-novo-kr-cascata');
+  if(btnNovoKr) btnNovoKr.addEventListener('click',function(){
+    var objId=cascataStack[1]&&cascataStack[1].objId;
+    if(!objId)return;
+    openEditObj(objId);
+  });
+
+  // ── Wire + Nova Tarefa (geral) ──
+  var btnNovaTarefa=document.getElementById('btn-nova-tarefa-cascata');
+  if(btnNovaTarefa) btnNovaTarefa.addEventListener('click',function(){
+    var objId=cascataStack[1]&&cascataStack[1].objId;
+    openNewTask(objId,null);
+  });
+
+  // ── Wire + Tarefa por KR ──
+  el.querySelectorAll('.add-task-this-kr').forEach(function(b){
+    b.addEventListener('click',function(e){
+      e.stopPropagation();
+      openNewTask(parseInt(this.dataset.objid),parseInt(this.dataset.krid));
+    });
+  });
+
+  // Após fechar modals, refresh cascata
+  document.querySelectorAll('[data-close]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      setTimeout(function(){
+        if(document.getElementById('page-cascata').classList.contains('active')){
+          loadAll().then(renderCascata);
+        }
+      },300);
     });
   });
 }
