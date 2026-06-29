@@ -36,7 +36,7 @@ function logout() {
 function showAuth() { document.getElementById('auth-screen').style.display = 'flex'; document.getElementById('app-screen').style.display = 'none'; }
 function showApp() {
   document.getElementById('auth-screen').style.display = 'none'; document.getElementById('app-screen').style.display = 'block';
-  document.getElementById('sidebar-username').textContent = currentUser?.name || currentUser?.email || '';
+  
   initApp();
 }
 function wireAuth() {
