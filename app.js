@@ -10,19 +10,33 @@ async function api(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(`${API}/api/${path}`, opts);
-  if (res.status === 401) {
-    const refreshed = await tryRefresh();
-    if (refreshed) { opts.headers.Authorization = `Bearer ${authToken}`; const retry = await fetch(`${API}/api/${path}`, opts); return retry.json(); }
-    else { logout(); return null; }
+  if (res.status === 401 || res.status === 400) {
+    let bodyText = '';
+    try { bodyText = await res.clone().text(); } catch {}
+    const looksLikeAuthError = res.status === 401 || /token|jwt|auth|unauthorized|expired/i.test(bodyText);
+    if (looksLikeAuthError && authToken) {
+      const refreshed = await tryRefresh();
+      if (refreshed) {
+        opts.headers.Authorization = `Bearer ${authToken}`;
+        const retry = await fetch(`${API}/api/${path}`, opts);
+        if (retry.ok) return retry.json();
+        if (retry.status === 401) { logout(); return null; }
+        try { return await retry.json(); } catch { return null; }
+      } else {
+        logout();
+        return null;
+      }
+    }
   }
-  return res.json();
+  try { return await res.json(); } catch { return null; }
 }
 async function tryRefresh() {
   const rt = localStorage.getItem('eixo_refresh_token'); if (!rt) return false;
   try {
     const res = await fetch(`${API}/api/auth`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'refresh', refresh_token: rt }) });
+    if (!res.ok) return false;
     const data = await res.json();
-    if (data.token) { authToken = data.token; localStorage.setItem('eixo_token', data.token); localStorage.setItem('eixo_refresh_token', data.refresh_token); return true; }
+    if (data.token) { authToken = data.token; localStorage.setItem('eixo_token', data.token); if(data.refresh_token) localStorage.setItem('eixo_refresh_token', data.refresh_token); return true; }
   } catch {}
   return false;
 }
@@ -36,8 +50,16 @@ function logout() {
 function showAuth() { document.getElementById('auth-screen').style.display = 'flex'; document.getElementById('app-screen').style.display = 'none'; }
 function showApp() {
   document.getElementById('auth-screen').style.display = 'none'; document.getElementById('app-screen').style.display = 'block';
-  
   initApp();
+  startTokenAutoRefresh();
+}
+let _tokenRefreshInterval = null;
+function startTokenAutoRefresh() {
+  if (_tokenRefreshInterval) clearInterval(_tokenRefreshInterval);
+  // Renova o token a cada 40 minutos (antes de expirar) enquanto o app estiver aberto
+  _tokenRefreshInterval = setInterval(async () => {
+    if (authToken) await tryRefresh();
+  }, 40 * 60 * 1000);
 }
 function wireAuth() {
   document.getElementById('goto-signup').addEventListener('click', () => { document.getElementById('auth-login').style.display = 'none'; document.getElementById('auth-signup').style.display = 'block'; });
@@ -342,7 +364,7 @@ window._openGlassFromDay=function(type,id,dayKey){if(type==='task'){const t=stat
   const style=document.createElement('style');
   style.textContent=`.auth-wrap{min-height:100vh;background:linear-gradient(145deg,#1B1B3A,#252558,#1a3a4a);display:flex;align-items:center;justify-content:center;padding:24px}.auth-card{background:rgba(255,255,255,0.07);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:40px;width:min(400px,100%)}.auth-logo{width:52px;height:52px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;margin:0 auto 16px}.auth-title{color:#fff;font-size:26px;font-weight:800;text-align:center;letter-spacing:-0.5px;margin-bottom:4px}.auth-sub{color:rgba(255,255,255,0.4);font-size:13px;text-align:center;margin-bottom:28px}.auth-card .fg{margin-bottom:14px}.auth-card .fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);margin-bottom:6px}.auth-card .fg input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;transition:all 0.15s}.auth-card .fg input:focus{outline:none;border-color:var(--accent)}.auth-card .fg input::placeholder{color:rgba(255,255,255,0.3)}.auth-btn{width:100%;padding:13px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}.auth-btn:disabled{opacity:0.5;cursor:not-allowed}.auth-switch{text-align:center;font-size:13px;color:rgba(255,255,255,0.4);margin-top:16px}.auth-switch span{color:var(--accent);cursor:pointer;font-weight:600}.auth-error{background:rgba(198,93,59,0.15);border:1px solid rgba(198,93,59,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#E8856A;margin-bottom:12px}`;
   document.head.appendChild(style);
-  if(authToken&&currentUser){showApp();}else{showAuth();wireAuth();}
+  if(authToken&&currentUser){tryRefresh().finally(showApp);}else{showAuth();wireAuth();}
 })();
 
 // ─── RENDER DASH ─────────────────────────────────────────────────────────────
