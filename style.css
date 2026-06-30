@@ -360,6 +360,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .home-wrap.light .home-card-count{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
 .home-wrap.light .home-card-count.ok{background:var(--teal-bg);color:var(--teal);border-color:var(--teal-border)}
 .home-wrap.light .home-item-name{color:var(--navy)}
+.home-wrap.light .home-item-overdue .home-item-name{color:var(--red);font-weight:600}
 .home-wrap.light .home-item{border-bottom-color:rgba(27,27,58,0.06)}
 .home-wrap.light .home-check{border-color:rgba(27,27,58,0.2)}
 .home-wrap.light .home-check.done{background:var(--teal);border-color:var(--teal)}
