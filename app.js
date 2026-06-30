@@ -1294,7 +1294,7 @@ function renderCascataDream(d){
   h += '<div class="cascata-dream-hdr" data-id="'+d.id+'" style="display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;transition:background 0.15s">';
   h += '<svg class="cascata-chev" style="transition:transform 0.2s;flex-shrink:0;'+(isOpen?'transform:rotate(90deg)':'')+'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
   h += '<div style="flex:1">';
-  h += '<div style="font-size:16px;font-weight:700;color:var(--navy)">'+d.name+'</div>';
+  h += '<div style="font-size:16px;font-weight:700;color:var(--text)">'+d.name+'</div>';
   h += '<div style="font-size:12px;color:var(--text3);margin-top:2px">'+objs.length+' objetivo(s) · Prazo: '+(d.due_date||'—')+(ovCount>0?' · <span style="color:var(--red);font-weight:600">'+ovCount+' atrasada(s)</span>':'')+'</div>';
   h += '<div class="progress" style="margin-top:8px;height:4px"><div class="progress-fill" style="width:'+p+'%;background:'+bc2+'"></div></div>';
   h += '</div>';
@@ -1331,7 +1331,7 @@ function renderCascataObj(o){
   h += '<div class="cascata-obj-hdr" data-id="'+o.id+'" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:background 0.15s">';
   h += '<svg class="cascata-chev" style="transition:transform 0.2s;flex-shrink:0;'+(isOpen?'transform:rotate(90deg)':'')+'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
   h += '<div style="flex:1">';
-  h += '<div style="font-size:14px;font-weight:700;color:var(--navy)">'+o.name+'</div>';
+  h += '<div style="font-size:14px;font-weight:700;color:var(--text)">'+o.name+'</div>';
   h += '<div style="font-size:11px;color:var(--text3)">'+taskCount+' tarefa(s) · Prazo: '+(o.due_date||'—')+'</div>';
   h += '<div class="progress" style="margin-top:6px;height:4px"><div class="progress-fill" style="width:'+op+'%;background:'+obc+'"></div></div>';
   h += '</div>';
@@ -1390,7 +1390,7 @@ function renderCascataKr(kr, objId){
   h += '<div class="cascata-kr-hdr" data-id="'+kr.id+'" style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;transition:background 0.15s">';
   h += '<svg class="cascata-chev" style="transition:transform 0.2s;flex-shrink:0;'+(isOpen?'transform:rotate(90deg)':'')+'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
   h += '<div class="kr-dot" style="background:'+col+'"></div>';
-  h += '<div style="flex:1;font-size:13px;font-weight:700;color:var(--navy)">'+kr.name+'</div>';
+  h += '<div style="flex:1;font-size:13px;font-weight:700;color:var(--text)">'+kr.name+'</div>';
   if(kp>0||krTasks.length) h += '<span class="badge '+pcBadge(kp)+'">'+kp+'%</span>';
   h += '<button class="btn btn-sm add-task-this-kr" data-krid="'+kr.id+'" data-objid="'+objId+'" onclick="event.stopPropagation()" style="font-size:11px">+ Tarefa</button>';
   h += '<button class="btn btn-sm edt-kr-cascata" data-krid="'+kr.id+'" data-objid="'+objId+'" onclick="event.stopPropagation()" style="padding:5px">'+edt()+'</button>';
