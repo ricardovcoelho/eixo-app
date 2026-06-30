@@ -300,8 +300,11 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   .grid-4{grid-template-columns:1fr 1fr}.metric-val{font-size:24px}
   .form-row{grid-template-columns:1fr}
   .r-table{overflow-x:auto}.r-hdr,.r-row{min-width:580px}
-  .agenda-cols{grid-template-columns:1fr!important}
-  .agenda-day-col{display:none}.agenda-day-col.today-col{display:flex}
+  .agenda-cols{display:flex!important;flex-direction:column!important;grid-template-columns:none!important}
+  .agenda-day-col{display:flex!important;min-height:0!important;border-right:none!important;border-bottom:1px solid var(--border)}
+  .agenda-day-col:last-child{border-bottom:none}
+  .agenda-event{min-width:0}
+  .agenda-event span{min-width:0}
   body{overflow-x:hidden}
   .main{overflow-x:hidden}
   .matrix-wrap{grid-template-columns:1fr}
