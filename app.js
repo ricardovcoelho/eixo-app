@@ -127,12 +127,15 @@ async function toggleTask(id) {
 }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
-function nav(page,extra){
+function nav(page,extra,skipHighlight){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
-  const ni=document.getElementById('nav-'+page)||document.getElementById('nav-sonhos'); if(ni)ni.classList.add('active');
-  const titles={home:['',''],dashboard:['Dashboard','Visão geral'],matriz:['Matriz Foco','Priorize suas tarefas'],sonhos:['Projetos','Seus grandes projetos de vida'],'dream-detail':['Detalhe do Sonho',''],objetivos:['Objetivos & KRs',''],tarefas:['Tarefas',''],rotinas:['Rotinas',''],acoes:['Afazeres','Tarefas do dia a dia'],agenda:['Agenda','']};
+  if(!skipHighlight){
+    let ni = document.getElementById('nav-'+page) || document.getElementById('nav-sonhos');
+    if(ni) ni.classList.add('active');
+  }
+  const titles={home:['',''],dashboard:['Dashboard','Visão geral'],matriz:['Matriz Foco','Priorize suas tarefas'],sonhos:['Projetos','Seus grandes projetos de vida'],cascata:['Projetos','Seus grandes projetos de vida'],'dream-detail':['Detalhe do Sonho',''],objetivos:['Objetivos & KRs',''],tarefas:['Tarefas',''],rotinas:['Rotinas',''],acoes:['Afazeres','Tarefas do dia a dia'],agenda:['Agenda',''],perfil:['Usuário','Configurações de perfil'],senha:['Senha','Alterar sua senha']};
   const info=titles[page]||['',''];
   document.getElementById('topbar-title').textContent=info[0]; document.getElementById('topbar-sub').textContent=info[1];
   document.querySelector('.topbar').style.display=page==='home'?'none':'flex';
@@ -152,6 +155,7 @@ function nav(page,extra){
   if(page==='rotinas')renderRoutines();
   if(page==='acoes')renderAcoes();
   if(page==='agenda')renderAgenda();
+  if(page==='cascata'){cascataStack=[];renderCascata();}
   closeSidebar();
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
@@ -167,7 +171,11 @@ async function initApp(){
   document.querySelectorAll('.overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
   document.getElementById('glass-close').addEventListener('click',closeGlass);
   document.getElementById('glass-overlay').addEventListener('click',e=>{if(e.target===e.currentTarget)closeGlass();});
-  document.querySelectorAll('.nav-item[data-page]').forEach(item=>item.addEventListener('click',()=>nav(item.dataset.page)));
+  document.querySelectorAll('.nav-item[data-page]').forEach(item=>item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+    nav(item.dataset.page,null,true);
+  }));
   document.getElementById('btn-back').addEventListener('click',()=>nav('sonhos'));
   document.getElementById('burger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');document.getElementById('mob-overlay').classList.toggle('open');});
   document.getElementById('mob-overlay').addEventListener('click',closeSidebar);
@@ -1126,18 +1134,6 @@ function renderAgendaSingleDay(d){
     // Renderizar páginas novas
     if(page==='perfil') renderPerfil();
     if(page==='senha') renderSenha();
-  };
-
-  // Wire novos nav items após initApp
-  var origInitApp = initApp;
-  initApp = async function(){
-    await origInitApp();
-    // Wire nav items não cobertos
-    document.querySelectorAll('.nav-item[data-page]').forEach(function(item){
-      item.addEventListener('click', function(){
-        nav(this.dataset.page);
-      });
-    });
   };
 })();
 
