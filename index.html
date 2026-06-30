@@ -68,4 +68,109 @@
 
         <!-- DADOS -->
         <div class="nav-section-label">Dados</div>
-        <a class="nav-item"
+        <a class="nav-item" id="nav-projetos-dados" data-page="cascata" title="Projetos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span class="nav-item-label">Projetos</span>
+        </a>
+        <a class="nav-item" id="nav-objetivos" data-page="objetivos" title="Objetivos e Resultados-Chave">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          <span class="nav-item-label">Objetivos</span>
+        </a>
+        <a class="nav-item" id="nav-tarefas" data-page="tarefas" title="Tarefas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          <span class="nav-item-label">Tarefas</span>
+        </a>
+        <a class="nav-item" id="nav-rotinas" data-page="rotinas" title="Rotinas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2.1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+          <span class="nav-item-label">Rotinas</span>
+        </a>
+        <a class="nav-item" id="nav-acoes" data-page="acoes" title="Afazeres">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span class="nav-item-label">Afazeres</span>
+        </a>
+        <a class="nav-item" id="nav-matriz" data-page="matriz" title="Matriz Foco">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8"/><rect x="13" y="3" width="8" height="8"/><rect x="3" y="13" width="8" height="8"/><rect x="13" y="13" width="8" height="8"/></svg>
+          <span class="nav-item-label">Matriz Foco</span>
+        </a>
+
+        <div class="nav-divider"></div>
+
+        <!-- CONFIGURAÇÕES -->
+        <div class="nav-section-label">Configurações</div>
+        <a class="nav-item" id="nav-perfil" data-page="perfil" title="Usuário">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <span class="nav-item-label">Usuário</span>
+        </a>
+        <a class="nav-item" id="nav-senha" data-page="senha" title="Senha">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          <span class="nav-item-label">Senha</span>
+        </a>
+        <a class="nav-item" id="nav-bug" href="https://wa.me/5534999177070?text=Oi%2C%20encontrei%20um%20problema%20no%20Eixo%3A%20" target="_blank" rel="noopener" title="Reportar problema">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span class="nav-item-label">Reportar problema</span>
+        </a>
+
+      </nav>
+      <div class="sidebar-bottom">
+        <a class="nav-item" id="btn-logout" title="Sair">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span class="nav-item-label">Sair</span>
+        </a>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="burger" id="burger"><span></span><span></span><span></span></button>
+          <div>
+            <div class="topbar-title" id="topbar-title">Início</div>
+            <div class="topbar-sub" id="topbar-sub"></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button id="global-theme-btn" style="background:none;border:none;cursor:pointer;font-size:20px;padding:4px;opacity:0.6" title="Alternar tema">🌙</button>
+          <div id="topbar-actions" style="display:flex;gap:8px"></div>
+        </div>
+      </div>
+      <div class="sync-bar"><div class="sync-dot" id="sync-dot"></div><span id="sync-status">Conectando...</span></div>
+      <div class="content" id="app-content">
+        <div class="page active" id="page-home"><div id="home-content"></div></div>
+        <div class="page" id="page-dashboard">
+          <div class="grid-4" id="dash-metrics"></div>
+          <div style="margin-bottom:14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Meus Projetos</div>
+          <div id="dash-dreams"></div>
+          <div style="margin:24px 0 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Matriz Foco</div>
+          <div id="matriz-dash"></div>
+        </div>
+        <div class="page" id="page-matriz"><div id="matriz-full"></div></div>
+        <div class="page" id="page-sonhos"><div id="dreams-list"></div></div>
+        <div class="page" id="page-dream-detail">
+          <div class="detail-back" id="btn-back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Voltar</div>
+          <div id="dream-detail-content"></div>
+        </div>
+        <div class="page" id="page-objetivos"><div id="obj-list"></div></div>
+        <div class="page" id="page-tarefas">
+          <div class="tabs" id="task-tabs">
+            <div class="tab active" data-filter="all">Todas</div>
+            <div class="tab" data-filter="pending">Pendentes</div>
+            <div class="tab" data-filter="done">Concluídas</div>
+          </div>
+          <div id="task-list"></div>
+        </div>
+        <div class="page" id="page-rotinas"><div id="routine-list"></div></div>
+        <div class="page" id="page-acoes"><div id="acoes-content"></div></div>
+        <div class="page" id="page-agenda"><div id="agenda-content"></div></div>
+        <!-- NOVAS PÁGINAS -->
+        <div class="page" id="page-perfil"><div id="perfil-content"></div></div>
+        <div class="page" id="page-senha"><div id="senha-content"></div></div>
+        <div class="page" id="page-cascata"><div id="cascata-content"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="modals-container"></div>
+<script src="/app.js"></script>
+</body>
+</html>
