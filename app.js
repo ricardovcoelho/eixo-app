@@ -75,6 +75,7 @@ function wireAuth() {
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let state = { dreams: [], objectives: [], tasks: [], routines: [], catLabels: {gestao:'GESTÃO',vendas:'VENDAS',pessoal:'PESSOAL',desenv:'DESENVOLVIMENTO'}, customCats: [] };
 let editObjId=null, editDreamId=null, editRoutineId=null, editTaskId=null, linkTaskId=null, taskFilter='all', activeDream=null, editCatKey=null;
+let objsOpenObj=null, objsOpenKr=null;
 let agendaView='day', agendaDate=new Date();
 let rescheduleType=null, rescheduleId=null;
 
@@ -442,33 +443,72 @@ function renderObjs(){
   var h='';
   state.objectives.forEach(function(o){
     var dream=state.dreams.find(function(d){return d.id===o.dream_id;}),op=oPct(o.id),sb=statusBadge(o),obc=objBarColor(o);
-    h+='<div class="card" style="padding:0;overflow:hidden"><div style="padding:14px 18px 0"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px"><div><div style="font-size:14px;font-weight:600">'+o.name+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'+(dream?'<span class="badge badge-amber">'+dream.name+'</span>':'')+'<span class="badge '+sb[0]+'">'+sb[1]+'</span><span style="font-size:11px;color:var(--text3)">· '+(o.due_date||'sem prazo')+'</span></div></div>';
-    h+='<div style="display:flex;align-items:center;gap:6px;flex-shrink:0"><span class="badge '+pcBadge(op)+'" style="font-size:13px;padding:4px 10px">'+op+'%</span>';
+    var isObjOpen = objsOpenObj===o.id;
+    h+='<div class="card" style="padding:0;overflow:hidden">';
+    // Header — clicável para expandir
+    h+='<div class="objs-obj-hdr" data-id="'+o.id+'" style="padding:14px 18px;cursor:pointer;transition:background 0.15s">';
+    h+='<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">';
+    h+='<div style="display:flex;align-items:flex-start;gap:10px;flex:1">';
+    h+='<svg class="objs-chev" style="margin-top:3px;transition:transform 0.2s;flex-shrink:0;'+(isObjOpen?'transform:rotate(90deg)':'')+'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+    h+='<div><div style="font-size:14px;font-weight:600">'+o.name+'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'+(dream?'<span class="badge badge-amber">'+dream.name+'</span>':'')+'<span class="badge '+sb[0]+'">'+sb[1]+'</span><span style="font-size:11px;color:var(--text3)">· '+(o.due_date||'sem prazo')+'</span></div></div>';
+    h+='</div>';
+    h+='<div style="display:flex;align-items:center;gap:6px;flex-shrink:0" onclick="event.stopPropagation()"><span class="badge '+pcBadge(op)+'" style="font-size:13px;padding:4px 10px">'+op+'%</span>';
     h+=o.status==='done'?'<button class="btn btn-sm toggle-done" data-id="'+o.id+'" style="background:var(--green-bg);color:var(--green);border-color:var(--green);font-size:11px;font-weight:700">✓ Concluído</button>':'<button class="btn btn-sm toggle-done" data-id="'+o.id+'" style="font-size:11px">Marcar concluído</button>';
-    h+='<button class="btn btn-sm btn-icon edt-obj" data-id="'+o.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-obj" data-id="'+o.id+'">'+trsh()+'</button></div></div><div class="progress" style="margin-bottom:14px"><div class="progress-fill" style="width:'+op+'%;background:'+obc+'"></div></div></div>';
+    h+='<button class="btn btn-sm btn-icon edt-obj" data-id="'+o.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-obj" data-id="'+o.id+'">'+trsh()+'</button></div>';
+    h+='</div>';
+    h+='<div class="progress" style="margin-top:10px"><div class="progress-fill" style="width:'+op+'%;background:'+obc+'"></div></div>';
+    h+='</div>';
+
+    // Corpo — KRs (visível só se expandido)
+    h+='<div class="objs-obj-body" style="display:'+(isObjOpen?'block':'none')+'">';
     o.krs.forEach(function(kr){
       var krtasks=state.tasks.filter(function(t){return t.objective_id===o.id&&t.kr_id===kr.id;});krtasks.sort(function(a,b){if(!a.due_date&&!b.due_date)return 0;if(!a.due_date)return 1;if(!b.due_date)return -1;return a.due_date.localeCompare(b.due_date);});
       var krd=krtasks.filter(function(t){return t.done;}).length,kp=pct(krd,krtasks.length),krDone=kr.status==='done',krOv=!krDone&&isOverdue(kr.due_date),hasOvT=krtasks.some(function(t){return !t.done&&isOverdue(t.due_date);});
       var col=krDone||krd===krtasks.length&&krtasks.length?'var(--green)':hasOvT||krOv?'var(--red)':krd>0?'var(--accent)':'var(--border2)';
-      h+='<div style="border-top:1px solid var(--border)"><div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg3);flex-wrap:wrap"><div class="kr-dot" style="background:'+col+'"></div><div style="flex:1;min-width:120px"><div style="font-size:13px;font-weight:700;'+(krDone?'text-decoration:line-through;color:var(--text3)':krOv||hasOvT?'color:var(--red)':'color:var(--text)')+'">'+kr.name+(krOv||hasOvT?' ⚠':'')+'</div>'+(kr.due_date?'<div style="font-size:11px;color:'+(krOv?'var(--red)':'var(--text3)')+';margin-top:1px">Prazo: '+kr.due_date+'</div>':'')+'</div>';
+      var isKrOpen = objsOpenKr===kr.id;
+      h+='<div style="border-top:1px solid var(--border)">';
+      h+='<div class="objs-kr-hdr" data-id="'+kr.id+'" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg3);flex-wrap:wrap;cursor:pointer">';
+      h+='<svg class="objs-chev" style="transition:transform 0.2s;flex-shrink:0;'+(isKrOpen?'transform:rotate(90deg)':'')+'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+      h+='<div class="kr-dot" style="background:'+col+'"></div><div style="flex:1;min-width:120px"><div style="font-size:13px;font-weight:700;'+(krDone?'text-decoration:line-through;color:var(--text3)':krOv||hasOvT?'color:var(--red)':'color:var(--text)')+'">'+kr.name+(krOv||hasOvT?' ⚠':'')+'</div>'+(kr.due_date?'<div style="font-size:11px;color:'+(krOv?'var(--red)':'var(--text3)')+';margin-top:1px">Prazo: '+kr.due_date+'</div>':'')+'</div>';
       h+=(krtasks.length?'<span class="badge '+pcBadge(kp)+'">'+kp+'%</span>':'');
+      h+='<div onclick="event.stopPropagation()" style="display:flex;gap:6px">';
       h+=krDone?'<button class="btn btn-sm toggle-kr-done" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="font-size:11px;background:var(--green-bg);color:var(--green);border-color:var(--green);font-weight:700">✓ Concluído</button>':'<button class="btn btn-sm toggle-kr-done" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="font-size:11px">Marcar concluído</button>';
-      h+='<button class="btn btn-sm btn-accent add-task-kr" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="font-size:11px;padding:4px 10px">+ Tarefa</button></div>';
+      h+='<button class="btn btn-sm btn-accent add-task-kr" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="font-size:11px;padding:4px 10px">+ Tarefa</button></div></div>';
+      h+='<div class="objs-kr-body" style="display:'+(isKrOpen?'block':'none')+'">';
       if(krtasks.length){h+='<div style="padding:4px 14px 8px 36px;background:var(--bg2)"><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);font-weight:700;padding:6px 0 4px">Plano de Ação</div>';krtasks.forEach(function(t){var ov=!t.done&&isOverdue(t.due_date);h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)"><div class="check-box'+(t.done?' done':'')+'" data-task="'+t.id+'">'+chk()+'</div><span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red);font-weight:600':'')+'">'+t.name+(ov?' ⚠':'')+'</span>'+(t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'')+'<button class="btn btn-sm btn-icon edt-task" data-id="'+t.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-task-obj" data-id="'+t.id+'">'+trsh()+'</button></div>';});h+='</div>';}
       else{h+='<div style="padding:10px 14px 10px 36px;font-size:12px;color:var(--text3)">Nenhuma tarefa. Clique em "+ Tarefa".</div>';}
-      h+='</div>';
+      h+='</div></div>';
     });
-    h+='</div>';
+    h+='</div></div>';
   });
   el.innerHTML=h;
-  el.querySelectorAll('.check-box').forEach(function(b){b.addEventListener('click',function(){toggleTask(parseInt(this.dataset.task));});});
-  el.querySelectorAll('.toggle-done').forEach(function(b){b.addEventListener('click',async function(){var o=state.objectives.find(function(x){return x.id===parseInt(b.dataset.id);});if(!o)return;o.status=o.status==='done'?'on-track':'done';await sbUpdate('objectives',o.id,{status:o.status});renderObjs();});});
-  el.querySelectorAll('.toggle-kr-done').forEach(function(b){b.addEventListener('click',async function(){var o=state.objectives.find(function(x){return x.id===parseInt(b.dataset.objid);});if(!o)return;var kr=o.krs.find(function(x){return x.id===parseInt(b.dataset.krid);});if(!kr)return;kr.status=kr.status==='done'?'open':'done';await sbUpdate('krs',kr.id,{status:kr.status});renderObjs();});});
-  el.querySelectorAll('.edt-obj').forEach(function(b){b.addEventListener('click',function(){openEditObj(parseInt(this.dataset.id));});});
-  el.querySelectorAll('.del-obj').forEach(function(b){b.addEventListener('click',async function(){if(!confirm('Excluir?'))return;await sbDelete('objectives',parseInt(b.dataset.id));await loadAll();renderObjs();});});
-  el.querySelectorAll('.add-task-kr').forEach(function(b){b.addEventListener('click',function(){openNewTask(parseInt(b.dataset.objid),parseInt(b.dataset.krid));});});
-  el.querySelectorAll('.edt-task').forEach(function(b){b.addEventListener('click',function(){openEditTask(parseInt(this.dataset.id));});});
-  el.querySelectorAll('.del-task-obj').forEach(function(b){b.addEventListener('click',async function(){if(!confirm('Excluir tarefa?'))return;await sbDelete('tasks',parseInt(b.dataset.id));state.tasks=state.tasks.filter(function(t){return t.id!==parseInt(b.dataset.id);});renderObjs();});});
+
+  // Toggle objetivo expand
+  el.querySelectorAll('.objs-obj-hdr').forEach(function(hdr){
+    hdr.addEventListener('click',function(){
+      var id=parseInt(this.dataset.id);
+      objsOpenObj = objsOpenObj===id ? null : id;
+      objsOpenKr = null;
+      renderObjs();
+    });
+  });
+  // Toggle KR expand
+  el.querySelectorAll('.objs-kr-hdr').forEach(function(hdr){
+    hdr.addEventListener('click',function(){
+      var id=parseInt(this.dataset.id);
+      objsOpenKr = objsOpenKr===id ? null : id;
+      renderObjs();
+    });
+  });
+
+  el.querySelectorAll('.check-box').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();toggleTask(parseInt(this.dataset.task));});});
+  el.querySelectorAll('.toggle-done').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();var o=state.objectives.find(function(x){return x.id===parseInt(b.dataset.id);});if(!o)return;o.status=o.status==='done'?'on-track':'done';await sbUpdate('objectives',o.id,{status:o.status});renderObjs();});});
+  el.querySelectorAll('.toggle-kr-done').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();var o=state.objectives.find(function(x){return x.id===parseInt(b.dataset.objid);});if(!o)return;var kr=o.krs.find(function(x){return x.id===parseInt(b.dataset.krid);});if(!kr)return;kr.status=kr.status==='done'?'open':'done';await sbUpdate('krs',kr.id,{status:kr.status});renderObjs();});});
+  el.querySelectorAll('.edt-obj').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();openEditObj(parseInt(this.dataset.id));});});
+  el.querySelectorAll('.del-obj').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();if(!confirm('Excluir?'))return;await sbDelete('objectives',parseInt(b.dataset.id));await loadAll();renderObjs();});});
+  el.querySelectorAll('.add-task-kr').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();openNewTask(parseInt(b.dataset.objid),parseInt(b.dataset.krid));});});
+  el.querySelectorAll('.edt-task').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();openEditTask(parseInt(this.dataset.id));});});
+  el.querySelectorAll('.del-task-obj').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();if(!confirm('Excluir tarefa?'))return;await sbDelete('tasks',parseInt(b.dataset.id));state.tasks=state.tasks.filter(function(t){return t.id!==parseInt(b.dataset.id);});renderObjs();});});
 }
 
 // ─── RENDER TASKS ────────────────────────────────────────────────────────────
