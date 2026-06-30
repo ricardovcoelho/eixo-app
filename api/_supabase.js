@@ -27,13 +27,17 @@ function cors(res) {
 }
 
 // Verifica o token REALMENTE contra o Supabase Auth (assinatura + expiração).
-// Substitui a decodificação manual insegura que existia antes.
-// Usa a service key (admin) só para validar o token — nunca para ler dados do usuário.
+// Usa o client com a ANON key (não a service key) chamando getUser(token),
+// que é o jeito correto e documentado de validar um access_token de usuário.
 async function getVerifiedUserId(token) {
   if (!token) return null;
   try {
-    const sbAdmin = getSupabase();
-    const { data, error } = await sbAdmin.auth.getUser(token);
+    const url = process.env.SUPABASE_URL;
+    const anonKey = process.env.SUPABASE_ANON_KEY;
+    const client = createClient(url, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+    const { data, error } = await client.auth.getUser(token);
     if (error || !data?.user) return null;
     return data.user.id;
   } catch {
