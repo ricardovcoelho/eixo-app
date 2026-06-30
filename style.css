@@ -448,3 +448,55 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   gap:0;overflow-y:auto;overflow-x:hidden;
   padding:0;
 }
+
+/* ══ ONBOARDING ══ */
+.ob-overlay{display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;background:rgba(10,10,20,0.6);backdrop-filter:blur(8px)}
+.ob-overlay.open{display:flex}
+.ob-modal{background:var(--bg2);border-radius:24px;padding:40px 36px 32px;width:min(540px,92vw);max-height:88vh;overflow-y:auto;position:relative;box-shadow:0 32px 80px rgba(0,0,0,0.3);text-align:center}
+.ob-skip{position:absolute;top:18px;right:20px;background:none;border:none;color:var(--text3);font-size:12px;font-weight:600;cursor:pointer;padding:6px 10px;border-radius:8px;transition:all 0.15s}
+.ob-skip:hover{background:var(--bg3);color:var(--text)}
+.ob-icon{font-size:42px;margin-bottom:12px}
+.ob-title{font-size:22px;font-weight:800;color:var(--navy);letter-spacing:-0.5px;margin-bottom:6px}
+.ob-subtitle{font-size:13px;color:var(--text3);margin-bottom:28px}
+.ob-body{text-align:left;margin-bottom:24px}
+
+.ob-pillars{display:flex;flex-direction:column;gap:14px}
+.ob-pillar{display:flex;align-items:flex-start;gap:14px;background:var(--bg3);border-radius:14px;padding:16px}
+.ob-pillar-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ob-pillar-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:3px}
+.ob-pillar-text{font-size:12.5px;color:var(--text2);line-height:1.5}
+
+.ob-cascade-demo{display:flex;flex-direction:column;align-items:stretch;gap:4px}
+.ob-cascade-item{display:flex;align-items:center;gap:12px;background:var(--bg3);border-radius:12px;padding:12px 16px;border:1px solid var(--border)}
+.ob-cascade-item.ob-level-2{margin-left:20px}
+.ob-cascade-item.ob-level-3{margin-left:40px}
+.ob-cascade-item.ob-level-4{margin-left:60px;background:var(--accent-light);border-color:var(--accent-border)}
+.ob-cascade-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ob-cascade-check{width:16px;height:16px;border-radius:5px;border:2px solid var(--accent);flex-shrink:0}
+.ob-cascade-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text3)}
+.ob-cascade-name{font-size:13px;font-weight:600;color:var(--text)}
+.ob-cascade-arrow{text-align:center;color:var(--text3);font-size:14px;margin-left:10px}
+
+.ob-freq-list{display:flex;flex-direction:column;gap:10px}
+.ob-freq-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2);background:var(--bg3);padding:10px 14px;border-radius:10px}
+.ob-freq-badge{background:var(--teal-bg);color:var(--teal);font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;white-space:nowrap;flex-shrink:0}
+
+.ob-examples{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ob-example{background:var(--bg3);border-radius:12px;padding:14px;font-size:13px;font-weight:500;color:var(--text);text-align:center}
+
+.ob-tip{font-size:12px;color:var(--text3);background:var(--accent-bg);border-radius:10px;padding:12px 14px;line-height:1.5;border:1px solid var(--accent-border)}
+
+.ob-dots{display:flex;justify-content:center;gap:6px;margin-bottom:24px}
+.ob-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);transition:all 0.2s}
+.ob-dot.active{background:var(--accent);width:22px;border-radius:4px}
+
+.ob-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ob-actions .btn{flex:1;justify-content:center}
+
+@media(max-width:640px){
+  .ob-modal{padding:28px 22px 24px}
+  .ob-examples{grid-template-columns:1fr}
+  .ob-cascade-item.ob-level-2{margin-left:10px}
+  .ob-cascade-item.ob-level-3{margin-left:20px}
+  .ob-cascade-item.ob-level-4{margin-left:30px}
+}
