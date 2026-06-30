@@ -1,5 +1,5 @@
 // api/_crud.js — handler genérico de CRUD com RLS por usuário
-const { getSupabaseWithAuth, cors, getUserId } = require('./_supabase');
+const { getSupabaseWithAuth, cors, getVerifiedUserId } = require('./_supabase');
 
 async function handleCrud(req, res, table, extraSelect) {
   cors(res);
@@ -8,9 +8,11 @@ async function handleCrud(req, res, table, extraSelect) {
   const token = (req.headers.authorization || '').replace('Bearer ', '');
   if (!token) return res.status(401).json({ error: 'Não autenticado.' });
 
+  // Verifica o token de verdade (assinatura + expiração) contra o Supabase Auth
+  const userId = await getVerifiedUserId(token);
+  if (!userId) return res.status(401).json({ error: 'Token inválido ou expirado.' });
+
   const sb = getSupabaseWithAuth(token);
-  const userId = getUserId(req);
-  if (!userId) return res.status(401).json({ error: 'Token inválido.' });
 
   try {
     // GET — list all
