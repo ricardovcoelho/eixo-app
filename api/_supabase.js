@@ -26,15 +26,19 @@ function cors(res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
-function getUserId(req) {
-  const auth = req.headers.authorization;
-  if (!auth || !auth.startsWith('Bearer ')) return null;
-  // Decode JWT to get user id (without verification — Supabase RLS handles that)
+// Verifica o token REALMENTE contra o Supabase Auth (assinatura + expiração).
+// Substitui a decodificação manual insegura que existia antes.
+// Usa a service key (admin) só para validar o token — nunca para ler dados do usuário.
+async function getVerifiedUserId(token) {
+  if (!token) return null;
   try {
-    const token = auth.split(' ')[1];
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-    return payload.sub;
-  } catch { return null; }
+    const sbAdmin = getSupabase();
+    const { data, error } = await sbAdmin.auth.getUser(token);
+    if (error || !data?.user) return null;
+    return data.user.id;
+  } catch {
+    return null;
+  }
 }
 
-module.exports = { getSupabase, getSupabaseWithAuth, cors, getUserId };
+module.exports = { getSupabase, getSupabaseWithAuth, cors, getVerifiedUserId };
