@@ -76,6 +76,7 @@ function wireAuth() {
 let state = { dreams: [], objectives: [], tasks: [], routines: [], catLabels: {gestao:'GESTÃO',vendas:'VENDAS',pessoal:'PESSOAL',desenv:'DESENVOLVIMENTO'}, customCats: [] };
 let editObjId=null, editDreamId=null, editRoutineId=null, editTaskId=null, linkTaskId=null, taskFilter='all', activeDream=null, editCatKey=null;
 let objsOpenObj=null, objsOpenKr=null;
+let editKrObjId=null, editKrId=null;
 let agendaView='day', agendaDate=new Date();
 let rescheduleType=null, rescheduleId=null;
 
@@ -202,6 +203,7 @@ function getModalsHTML(){return `
 <div class="overlay" id="modal-routine"><div class="modal"><button class="modal-close" data-close="modal-routine">×</button><h3 id="routine-modal-title">Nova Rotina</h3><div class="fg"><label>Nome</label><input id="r-name"></div><div class="form-row"><div class="fg"><label>Categoria</label><select id="r-cat"><option value="gestao">Gestão</option><option value="vendas">Vendas</option><option value="pessoal">Pessoal</option><option value="desenv">Desenvolvimento</option></select></div><div class="fg"><label>Frequência</label><select id="r-freq"><option value="daily">Diária</option><option value="weekdays">Dias úteis (Seg-Sex)</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option><option value="custom_day">Dias específicos</option></select></div></div><div class="fg" id="r-dow-group" style="display:none"><label>Dias da semana</label><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px"><label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" class="dow-cb" value="1"> Seg</label><label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" class="dow-cb" value="2"> Ter</label><label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" class="dow-cb" value="3"> Qua</label><label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" class="dow-cb" value="4"> Qui</label><label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" class="dow-cb" value="5"> Sex</label><label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" class="dow-cb" value="6"> Sáb</label><label style="display:flex;align-items:center;gap:5px;font-size:13px"><input type="checkbox" class="dow-cb" value="0"> Dom</label></div></div><div class="fg" id="r-time-group" style="display:none"><label>Horário (opcional)</label><input id="r-time" type="time"></div><div class="modal-footer"><button class="btn" data-close="modal-routine">Cancelar</button><button class="btn btn-accent" id="btn-save-routine">Salvar</button></div></div></div>
 <div class="overlay" id="modal-cat-edit"><div class="modal"><button class="modal-close" data-close="modal-cat-edit">×</button><h3>Renomear Categoria</h3><div class="fg"><label>Nome</label><input id="cat-edit-name"></div><div class="modal-footer"><button class="btn" data-close="modal-cat-edit">Cancelar</button><button class="btn btn-accent" id="btn-save-cat">Salvar</button></div></div></div>
 <div class="overlay" id="modal-new-group"><div class="modal"><button class="modal-close" data-close="modal-new-group">×</button><h3>Novo Grupo de Rotinas</h3><div class="fg"><label>Nome do grupo</label><input id="new-group-name" placeholder="Ex: Família, Saúde..."></div><div class="modal-footer"><button class="btn" data-close="modal-new-group">Cancelar</button><button class="btn btn-accent" id="btn-save-new-group">Criar</button></div></div></div>
+<div class="overlay" id="modal-kr-edit"><div class="modal" style="max-width:420px"><button class="modal-close" data-close="modal-kr-edit">×</button><h3>Editar KR</h3><div class="fg"><label>Nome</label><input id="kre-name"></div><div class="fg"><label>Prazo</label><input id="kre-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-kr-edit">Cancelar</button><button class="btn btn-accent" id="btn-save-kr-edit">Salvar</button></div></div></div>
 <div class="overlay" id="modal-reschedule"><div class="modal" style="max-width:380px"><button class="modal-close" data-close="modal-reschedule">×</button><h3 id="reschedule-title">Reagendar</h3><div style="font-size:13px;color:var(--text2);margin-bottom:16px" id="reschedule-name"></div><div class="fg"><label>Nova data</label><input id="reschedule-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-reschedule">Cancelar</button><button class="btn btn-accent" id="btn-save-reschedule">Reagendar</button></div></div></div>
 <div class="glass-overlay" id="glass-overlay"><div class="glass-panel"><button class="glass-panel-close" id="glass-close"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div id="glass-content"></div></div></div>
 `;}
@@ -271,6 +273,16 @@ function wireSaveHandlers(){
   document.getElementById('btn-save-cat').addEventListener('click',()=>{
     const cat=document.getElementById('btn-save-cat').dataset.cat,nome=document.getElementById('cat-edit-name').value.trim();if(!nome)return alert('Digite um nome.');
     if(!state.catLabels)state.catLabels={};state.catLabels[cat]=nome.toUpperCase();saveCatLabels();closeModal('modal-cat-edit');renderRoutines();
+  });
+  document.getElementById('btn-save-kr-edit').addEventListener('click',async()=>{
+    const name=document.getElementById('kre-name').value.trim();if(!name)return alert('Dê um nome ao KR.');
+    const date=document.getElementById('kre-date').value||null;
+    await sbUpdate('krs',editKrId,{name,due_date:date});
+    await loadAll();
+    closeModal('modal-kr-edit');
+    editKrObjId=null;editKrId=null;
+    if(document.getElementById('page-objetivos').classList.contains('active'))renderObjs();
+    if(document.getElementById('page-cascata').classList.contains('active'))renderCascata();
   });
   document.getElementById('btn-save-new-group').addEventListener('click',()=>{
     const nome=document.getElementById('new-group-name').value.trim();if(!nome)return alert('Digite um nome.');
@@ -473,7 +485,9 @@ function renderObjs(){
       h+=(krtasks.length?'<span class="badge '+pcBadge(kp)+'">'+kp+'%</span>':'');
       h+='<div onclick="event.stopPropagation()" style="display:flex;gap:6px">';
       h+=krDone?'<button class="btn btn-sm toggle-kr-done" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="font-size:11px;background:var(--green-bg);color:var(--green);border-color:var(--green);font-weight:700">✓ Concluído</button>':'<button class="btn btn-sm toggle-kr-done" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="font-size:11px">Marcar concluído</button>';
-      h+='<button class="btn btn-sm btn-accent add-task-kr" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="font-size:11px;padding:4px 10px">+ Tarefa</button></div></div>';
+      h+='<button class="btn btn-sm btn-accent add-task-kr" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="font-size:11px;padding:4px 10px">+ Tarefa</button>';
+      h+='<button class="btn btn-sm btn-icon edt-kr" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="padding:5px">'+edt()+'</button>';
+      h+='<button class="btn btn-sm btn-icon del-kr" data-objid="'+o.id+'" data-krid="'+kr.id+'" style="padding:5px">'+trsh()+'</button></div></div>';
       h+='<div class="objs-kr-body" style="display:'+(isKrOpen?'block':'none')+'">';
       if(krtasks.length){h+='<div style="padding:4px 14px 8px 36px;background:var(--bg2)"><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);font-weight:700;padding:6px 0 4px">Plano de Ação</div>';krtasks.forEach(function(t){var ov=!t.done&&isOverdue(t.due_date);h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)"><div class="check-box'+(t.done?' done':'')+'" data-task="'+t.id+'">'+chk()+'</div><span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red);font-weight:600':'')+'">'+t.name+(ov?' ⚠':'')+'</span>'+(t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'')+'<button class="btn btn-sm btn-icon edt-task" data-id="'+t.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-task-obj" data-id="'+t.id+'">'+trsh()+'</button></div>';});h+='</div>';}
       else{h+='<div style="padding:10px 14px 10px 36px;font-size:12px;color:var(--text3)">Nenhuma tarefa. Clique em "+ Tarefa".</div>';}
@@ -507,6 +521,23 @@ function renderObjs(){
   el.querySelectorAll('.edt-obj').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();openEditObj(parseInt(this.dataset.id));});});
   el.querySelectorAll('.del-obj').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();if(!confirm('Excluir?'))return;await sbDelete('objectives',parseInt(b.dataset.id));await loadAll();renderObjs();});});
   el.querySelectorAll('.add-task-kr').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();openNewTask(parseInt(b.dataset.objid),parseInt(b.dataset.krid));});});
+  el.querySelectorAll('.edt-kr').forEach(function(b){b.addEventListener('click',function(e){
+    e.stopPropagation();
+    var o=state.objectives.find(function(x){return x.id===parseInt(b.dataset.objid);});if(!o)return;
+    var kr=o.krs.find(function(x){return x.id===parseInt(b.dataset.krid);});if(!kr)return;
+    editKrObjId=o.id; editKrId=kr.id;
+    document.getElementById('kre-name').value=kr.name;
+    document.getElementById('kre-date').value=kr.due_date||'';
+    openModal('modal-kr-edit');
+  });});
+  el.querySelectorAll('.del-kr').forEach(function(b){b.addEventListener('click',async function(e){
+    e.stopPropagation();
+    if(!confirm('Excluir este KR e todas as suas tarefas vinculadas?'))return;
+    await sbDelete('krs',parseInt(b.dataset.krid));
+    state.tasks=state.tasks.filter(function(t){return t.kr_id!==parseInt(b.dataset.krid);});
+    await loadAll();
+    renderObjs();
+  });});
   el.querySelectorAll('.edt-task').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();openEditTask(parseInt(this.dataset.id));});});
   el.querySelectorAll('.del-task-obj').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();if(!confirm('Excluir tarefa?'))return;await sbDelete('tasks',parseInt(b.dataset.id));state.tasks=state.tasks.filter(function(t){return t.id!==parseInt(b.dataset.id);});renderObjs();});});
 }
@@ -1322,6 +1353,8 @@ function renderCascataKr(kr, objId){
   h += '<div style="flex:1;font-size:13px;font-weight:700;color:var(--navy)">'+kr.name+'</div>';
   if(kp>0||krTasks.length) h += '<span class="badge '+pcBadge(kp)+'">'+kp+'%</span>';
   h += '<button class="btn btn-sm add-task-this-kr" data-krid="'+kr.id+'" data-objid="'+objId+'" onclick="event.stopPropagation()" style="font-size:11px">+ Tarefa</button>';
+  h += '<button class="btn btn-sm edt-kr-cascata" data-krid="'+kr.id+'" data-objid="'+objId+'" onclick="event.stopPropagation()" style="padding:5px">'+edt()+'</button>';
+  h += '<button class="btn btn-sm del-kr-cascata" data-krid="'+kr.id+'" data-objid="'+objId+'" onclick="event.stopPropagation()" style="padding:5px">'+trsh()+'</button>';
   h += '</div>';
 
   // Tarefas
@@ -1449,6 +1482,30 @@ function wireCascataAll(el){
     b.addEventListener('click', function(e){
       e.stopPropagation();
       openNewTask(parseInt(this.dataset.objid), parseInt(this.dataset.krid));
+    });
+  });
+
+  el.querySelectorAll('.edt-kr-cascata').forEach(function(b){
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      var objId=parseInt(this.dataset.objid), krId=parseInt(this.dataset.krid);
+      var o=state.objectives.find(function(x){return x.id===objId;});if(!o)return;
+      var kr=o.krs.find(function(x){return x.id===krId;});if(!kr)return;
+      editKrObjId=objId; editKrId=krId;
+      document.getElementById('kre-name').value=kr.name;
+      document.getElementById('kre-date').value=kr.due_date||'';
+      openModal('modal-kr-edit');
+    });
+  });
+
+  el.querySelectorAll('.del-kr-cascata').forEach(function(b){
+    b.addEventListener('click', async function(e){
+      e.stopPropagation();
+      if(!confirm('Excluir este KR e todas as suas tarefas vinculadas?')) return;
+      await sbDelete('krs', parseInt(this.dataset.krid));
+      state.tasks=state.tasks.filter(function(t){return t.kr_id!==parseInt(b.dataset.krid);});
+      await loadAll();
+      renderCascata();
     });
   });
 }
