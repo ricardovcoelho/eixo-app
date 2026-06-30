@@ -124,6 +124,7 @@ async function toggleTask(id) {
   if(document.getElementById('page-dashboard').classList.contains('active'))renderDash();
   if(document.getElementById('page-objetivos').classList.contains('active'))renderObjs();
   if(document.getElementById('page-home').classList.contains('active'))renderHome();
+  if(document.getElementById('page-cascata').classList.contains('active'))renderCascata();
 }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
@@ -155,7 +156,7 @@ function nav(page,extra,skipHighlight){
   if(page==='rotinas')renderRoutines();
   if(page==='acoes')renderAcoes();
   if(page==='agenda')renderAgenda();
-  if(page==='cascata'){cascataStack=[];renderCascata();}
+  if(page==='cascata'){renderCascata();}
   closeSidebar();
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
@@ -234,6 +235,7 @@ function wireSaveHandlers(){
     }
     await loadAll();closeModal('modal-obj');editObjId=null;
     if(document.getElementById('page-objetivos').classList.contains('active'))renderObjs();
+    if(document.getElementById('page-cascata').classList.contains('active'))renderCascata();
   });
   document.getElementById('btn-save-task').addEventListener('click',async()=>{
     const name=document.getElementById('t-name').value.trim();if(!name)return alert('Descreva a tarefa.');
@@ -245,6 +247,7 @@ function wireSaveHandlers(){
     if(document.getElementById('page-tarefas').classList.contains('active'))renderTasks();
     if(document.getElementById('page-objetivos').classList.contains('active'))renderObjs();
     if(document.getElementById('page-acoes').classList.contains('active'))renderAcoes();
+    if(document.getElementById('page-cascata').classList.contains('active'))renderCascata();
     renderDash();
   });
   document.getElementById('btn-save-link').addEventListener('click',async()=>{
@@ -1137,238 +1140,218 @@ function renderAgendaSingleDay(d){
   };
 })();
 
-// ══ CASCATA DE PROJETOS ══
-var cascataStack = [];
+// ══ CASCATA DE PROJETOS — ACORDEÃO ÚNICO ══
+var cascataOpenDream = null;   // id do projeto expandido
+var cascataOpenObj = null;     // id do objetivo expandido
+var cascataOpenKr = null;      // id do kr expandido
 
 function renderCascata(){
   var el = document.getElementById('cascata-content');
   if(!el) return;
-  var level = cascataStack.length;
 
-  // ── Breadcrumb ──
-  var bc = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:28px;flex-wrap:wrap">';
-  bc += '<span class="bc-item" data-level="0" style="cursor:pointer;color:var(--accent);font-weight:600;font-size:13px">Projetos</span>';
-  if(level>=1){
-    var dream = state.dreams.find(function(d){return d.id===cascataStack[0].dreamId;});
-    bc += '<span style="color:var(--text3)">›</span>';
-    bc += '<span class="bc-item" data-level="1" style="cursor:pointer;color:'+(level===1?'var(--navy)':'var(--accent)')+';font-weight:600;font-size:13px">'+(dream?dream.name:'')+'</span>';
+  var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">';
+  h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Seus Projetos</div>';
+  h += '<button class="btn btn-accent" id="btn-novo-projeto-cascata">+ Novo Projeto</button>';
+  h += '</div>';
+
+  if(!state.dreams.length){
+    h += '<div style="color:var(--text3);padding:48px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xl);font-size:14px">Nenhum projeto ainda.<br><br>Clique em <strong>+ Novo Projeto</strong> para começar.</div>';
+    el.innerHTML = h;
+    wireCascataTop(el);
+    return;
   }
-  if(level>=2){
-    var obj2 = state.objectives.find(function(o){return o.id===cascataStack[1].objId;});
-    bc += '<span style="color:var(--text3)">›</span>';
-    bc += '<span style="color:var(--navy);font-weight:600;font-size:13px">'+(obj2?obj2.name:'')+'</span>';
-  }
-  bc += '</div>';
 
-  var h = bc;
-
-  // ── NÍVEL 0: Lista de Projetos ──
-  if(level===0){
-    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">';
-    h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Seus Projetos</div>';
-    h += '<button class="btn btn-accent" id="btn-novo-projeto-cascata">+ Novo Projeto</button>';
-    h += '</div>';
-
-    if(!state.dreams.length){
-      h += '<div style="color:var(--text3);padding:48px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xl);font-size:14px">Nenhum projeto ainda.<br><br>Clique em <strong>+ Novo Projeto</strong> para começar.</div>';
-    } else {
-      h += '<div style="display:flex;flex-direction:column;gap:10px">';
-      state.dreams.forEach(function(d){
-        var p=dPct(d.id), bc2=dreamBarColor(d.id);
-        var objCount=state.objectives.filter(function(o){return o.dream_id===d.id;}).length;
-        var ovCount=state.tasks.filter(function(t){var ids=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});return !t.done&&ids.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
-        h += '<div class="card cascata-project" data-id="'+d.id+'" style="cursor:pointer;padding:20px 22px;transition:all 0.18s;border-left:3px solid '+(ovCount>0?'var(--red)':'var(--teal)')+'">';
-        h += '<div style="display:flex;align-items:center;gap:16px">';
-        h += '<div style="flex:1">';
-        h += '<div style="font-size:16px;font-weight:700;color:var(--navy);margin-bottom:4px">'+d.name+'</div>';
-        h += '<div style="font-size:12px;color:var(--text3)">'+objCount+' objetivo(s) · Prazo: '+(d.due_date||'—')+(ovCount>0?' · <span style="color:var(--red);font-weight:600">'+ovCount+' atrasada(s)</span>':'')+'</div>';
-        h += '<div class="progress" style="margin-top:10px;height:5px"><div class="progress-fill" style="width:'+p+'%;background:'+bc2+'"></div></div>';
-        h += '</div>';
-        h += '<div style="text-align:right;flex-shrink:0">';
-        h += '<div style="font-size:28px;font-weight:800;color:'+(p>0?'var(--accent)':'var(--text3)')+'">'+p+'%</div>';
-        h += '<div style="font-size:10px;color:var(--text3)">realizado</div>';
-        h += '</div>';
-        h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
-        h += '</div></div>';
-      });
-      h += '</div>';
-    }
-
-  // ── NÍVEL 1: Objetivos ──
-  } else if(level===1){
-    var dreamId = cascataStack[0].dreamId;
-    var dream1 = state.dreams.find(function(d){return d.id===dreamId;});
-    var objs = state.objectives.filter(function(o){return o.dream_id===dreamId;});
-
-    if(dream1){
-      var p1=dPct(dreamId), bc3=dreamBarColor(dreamId);
-      h += '<div style="background:linear-gradient(135deg,var(--accent-light),#FFF8E8);border:1px solid var(--accent-border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:24px">';
-      h += '<div style="display:flex;align-items:center;gap:16px">';
-      h += '<div style="flex:1">';
-      h += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:4px">✦ Projeto</div>';
-      h += '<div style="font-size:20px;font-weight:800;color:var(--navy)">'+dream1.name+'</div>';
-      if(dream1.description) h += '<div style="font-size:13px;color:var(--text2);margin-top:4px">'+dream1.description+'</div>';
-      h += '<div class="progress" style="margin-top:12px"><div class="progress-fill" style="width:'+p1+'%;background:'+bc3+'"></div></div>';
-      h += '<div style="font-size:11px;color:var(--text3);margin-top:6px">Prazo: '+(dream1.due_date||'—')+' · '+objs.length+' objetivo(s)</div>';
-      h += '</div>';
-      h += '<div style="font-size:36px;font-weight:800;color:var(--accent);line-height:1;text-align:right">'+p1+'%<div style="font-size:10px;color:var(--text3);font-weight:400">realizado</div></div>';
-      h += '</div></div>';
-    }
-
-    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">';
-    h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Objetivos</div>';
-    h += '<button class="btn btn-accent" id="btn-novo-obj-cascata">+ Novo Objetivo</button>';
-    h += '</div>';
-
-    if(!objs.length){
-      h += '<div style="color:var(--text3);padding:32px;text-align:center;background:var(--bg2);border:1px dashed var(--border2);border-radius:var(--radius-lg);font-size:13px">Nenhum objetivo ainda.<br>Clique em <strong>+ Novo Objetivo</strong>.</div>';
-    } else {
-      h += '<div style="display:flex;flex-direction:column;gap:8px">';
-      objs.forEach(function(o){
-        var op=oPct(o.id), sb=statusBadge(o), obc=objBarColor(o);
-        var taskCount=state.tasks.filter(function(t){return t.objective_id===o.id;}).length;
-        h += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden">';
-        // Header clicável
-        h += '<div class="cascata-obj" data-id="'+o.id+'" style="display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;transition:background 0.15s">';
-        h += '<div style="flex:1">';
-        h += '<div style="font-size:15px;font-weight:700;color:var(--navy);margin-bottom:4px">'+o.name+'</div>';
-        h += '<div style="font-size:12px;color:var(--text3)">'+taskCount+' tarefa(s) · Prazo: '+(o.due_date||'—')+'</div>';
-        h += '<div class="progress" style="margin-top:8px;height:4px"><div class="progress-fill" style="width:'+op+'%;background:'+obc+'"></div></div>';
-        h += '</div>';
-        h += '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">';
-        h += '<span class="badge '+sb[0]+'">'+sb[1]+'</span>';
-        h += '<span class="badge '+pcBadge(op)+'">'+op+'%</span>';
-        h += '<button class="btn btn-sm del-obj-cascata" data-id="'+o.id+'" style="color:var(--red);border-color:rgba(192,57,43,0.2);background:var(--red-bg)" onclick="event.stopPropagation()">🗑</button>';
-        h += '<svg class="cascata-obj-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>';
-        h += '</div></div>';
-        // KRs preview (colapsado)
-        if(o.krs&&o.krs.length){
-          h += '<div style="padding:8px 18px 12px;border-top:1px solid var(--border);background:var(--bg3);display:flex;flex-wrap:wrap;gap:6px">';
-          o.krs.forEach(function(kr){h += '<span class="badge badge-gray">'+kr.name+'</span>';});
-          h += '</div>';
-        }
-        h += '</div>';
-      });
-      h += '</div>';
-    }
-
-  // ── NÍVEL 2: KRs colapsáveis ──
-  } else if(level===2){
-    var objId = cascataStack[1].objId;
-    var obj = state.objectives.find(function(o){return o.id===objId;});
-    var tasks = state.tasks.filter(function(t){return t.objective_id===objId;});
-    tasks.sort(function(a,b){if(!a.due_date&&!b.due_date)return 0;if(!a.due_date)return 1;if(!b.due_date)return -1;return a.due_date.localeCompare(b.due_date);});
-
-    if(obj){
-      var op2=oPct(objId), sb2=statusBadge(obj), obc2=objBarColor(obj);
-      h += '<div style="background:linear-gradient(135deg,var(--teal-bg),var(--bg2));border:1px solid var(--teal-border);border-radius:var(--radius-lg);padding:20px 24px;margin-bottom:24px">';
-      h += '<div style="display:flex;align-items:center;gap:16px">';
-      h += '<div style="flex:1">';
-      h += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--teal);font-weight:700;margin-bottom:4px">Objetivo</div>';
-      h += '<div style="font-size:20px;font-weight:800;color:var(--navy)">'+obj.name+'</div>';
-      h += '<div style="font-size:12px;color:var(--text3);margin-top:4px">Prazo: '+(obj.due_date||'—')+'</div>';
-      h += '<div class="progress" style="margin-top:10px"><div class="progress-fill" style="width:'+op2+'%;background:'+obc2+'"></div></div>';
-      h += '</div>';
-      h += '<div style="text-align:right">';
-      h += '<span class="badge '+sb2[0]+'" style="margin-bottom:8px;display:block">'+sb2[1]+'</span>';
-      h += '<div style="font-size:30px;font-weight:800;color:var(--teal)">'+op2+'%</div>';
-      h += '</div></div></div>';
-    }
-
-    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">';
-    h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">KRs e Tarefas</div>';
-    h += '<div style="display:flex;gap:8px">';
-    h += '<button class="btn btn-sm" id="btn-novo-kr-cascata">+ Novo KR</button>';
-    h += '<button class="btn btn-accent btn-sm" id="btn-nova-tarefa-cascata">+ Nova Tarefa</button>';
-    h += '</div></div>';
-
-    if(!obj||!obj.krs||!obj.krs.length){
-      h += '<div style="color:var(--text3);padding:32px;text-align:center;background:var(--bg2);border:1px dashed var(--border2);border-radius:var(--radius-lg);font-size:13px;margin-bottom:12px">Nenhum KR ainda. Clique em <strong>+ Novo KR</strong>.</div>';
-    } else {
-      obj.krs.forEach(function(kr){
-        var krTasks=tasks.filter(function(t){return t.kr_id===kr.id;});
-        var krd=krTasks.filter(function(t){return t.done;}).length;
-        var kp=pct(krd,krTasks.length);
-        var col=kp===100?'var(--green)':kp>0?'var(--accent)':'var(--border2)';
-        var krId='kr-expand-'+kr.id;
-        h += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:8px">';
-        // KR header — colapsável
-        h += '<div class="kr-toggle-hdr" data-target="'+krId+'" style="display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;transition:background 0.15s">';
-        h += '<div class="kr-dot" style="background:'+col+'"></div>';
-        h += '<div style="flex:1;font-size:14px;font-weight:700;color:var(--navy)">'+kr.name+'</div>';
-        if(kp>0||krTasks.length) h += '<span class="badge '+pcBadge(kp)+'">'+kp+'%</span>';
-        h += '<button class="btn btn-sm add-task-this-kr" data-krid="'+kr.id+'" data-objid="'+objId+'" onclick="event.stopPropagation()" style="font-size:11px">+ Tarefa</button>';
-        h += '<svg class="kr-chev" style="transition:transform 0.2s;flex-shrink:0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
-        h += '</div>';
-        // KR tasks — colapsadas por padrão
-        h += '<div id="'+krId+'" style="display:none;border-top:1px solid var(--border)">';
-        if(!krTasks.length){
-          h += '<div style="padding:12px 18px;font-size:12px;color:var(--text3)">Nenhuma tarefa. Clique em "+ Tarefa".</div>';
-        } else {
-          krTasks.forEach(function(t){
-            var ov=!t.done&&isOverdue(t.due_date);
-            h += '<div style="display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--border)">';
-            h += '<div class="check-box'+(t.done?' done':'')+' cascata-task-check" data-id="'+t.id+'">'+chk()+'</div>';
-            h += '<span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red);font-weight:600':'color:var(--text)')+'">'+t.name+(ov?' ⚠':'')+'</span>';
-            h += (t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'');
-            h += '</div>';
-          });
-        }
-        h += '</div></div>';
-      });
-    }
-
-    // Tarefas sem KR
-    var semKR=tasks.filter(function(t){return !t.kr_id;});
-    if(semKR.length){
-      var semKrId='kr-expand-sem';
-      h += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:8px">';
-      h += '<div class="kr-toggle-hdr" data-target="'+semKrId+'" style="display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer">';
-      h += '<div class="kr-dot" style="background:var(--border2)"></div>';
-      h += '<div style="flex:1;font-size:14px;font-weight:600;color:var(--text2)">Sem KR vinculado</div>';
-      h += '<span class="badge badge-gray">'+semKR.length+'</span>';
-      h += '<svg class="kr-chev" style="transition:transform 0.2s" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
-      h += '</div>';
-      h += '<div id="'+semKrId+'" style="display:none;border-top:1px solid var(--border)">';
-      semKR.forEach(function(t){
-        var ov=!t.done&&isOverdue(t.due_date);
-        h += '<div style="display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid var(--border)">';
-        h += '<div class="check-box'+(t.done?' done':'')+' cascata-task-check" data-id="'+t.id+'">'+chk()+'</div>';
-        h += '<span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red)':'')+'">'+t.name+'</span>';
-        h += (t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'');
-        h += '</div>';
-      });
-      h += '</div></div>';
-    }
-  }
+  h += '<div style="display:flex;flex-direction:column;gap:10px">';
+  state.dreams.forEach(function(d){
+    h += renderCascataDream(d);
+  });
+  h += '</div>';
 
   el.innerHTML = h;
+  wireCascataAll(el);
+}
 
-  // ── Wire breadcrumb ──
-  el.querySelectorAll('.bc-item').forEach(function(b){
-    b.addEventListener('click', function(){
-      cascataStack=cascataStack.slice(0,parseInt(this.dataset.level));
+function renderCascataDream(d){
+  var isOpen = cascataOpenDream===d.id;
+  var p=dPct(d.id), bc2=dreamBarColor(d.id);
+  var objs = state.objectives.filter(function(o){return o.dream_id===d.id;});
+  var ovCount=state.tasks.filter(function(t){var ids=objs.map(function(o){return o.id;});return !t.done&&ids.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
+
+  var h = '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;border-left:3px solid '+(ovCount>0?'var(--red)':'var(--teal)')+'">';
+
+  // Header do projeto — clicável
+  h += '<div class="cascata-dream-hdr" data-id="'+d.id+'" style="display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;transition:background 0.15s">';
+  h += '<svg class="cascata-chev" style="transition:transform 0.2s;flex-shrink:0;'+(isOpen?'transform:rotate(90deg)':'')+'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+  h += '<div style="flex:1">';
+  h += '<div style="font-size:16px;font-weight:700;color:var(--navy)">'+d.name+'</div>';
+  h += '<div style="font-size:12px;color:var(--text3);margin-top:2px">'+objs.length+' objetivo(s) · Prazo: '+(d.due_date||'—')+(ovCount>0?' · <span style="color:var(--red);font-weight:600">'+ovCount+' atrasada(s)</span>':'')+'</div>';
+  h += '<div class="progress" style="margin-top:8px;height:4px"><div class="progress-fill" style="width:'+p+'%;background:'+bc2+'"></div></div>';
+  h += '</div>';
+  h += '<div style="font-size:24px;font-weight:800;color:'+(p>0?'var(--accent)':'var(--text3)')+';flex-shrink:0">'+p+'%</div>';
+  h += '<button class="btn btn-sm del-dream-cascata" data-id="'+d.id+'" onclick="event.stopPropagation()" style="color:var(--red);border-color:rgba(192,57,43,0.2);background:var(--red-bg);flex-shrink:0">🗑</button>';
+  h += '</div>';
+
+  // Conteúdo expandido — Objetivos
+  h += '<div class="cascata-dream-body" style="display:'+(isOpen?'block':'none')+';border-top:1px solid var(--border);background:var(--bg3);padding:16px 20px 16px 48px">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">';
+  h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Objetivos</div>';
+  h += '<button class="btn btn-sm btn-accent btn-novo-obj-this" data-dreamid="'+d.id+'">+ Novo Objetivo</button>';
+  h += '</div>';
+
+  if(!objs.length){
+    h += '<div style="color:var(--text3);padding:16px;text-align:center;background:var(--bg2);border:1px dashed var(--border2);border-radius:var(--radius);font-size:13px">Nenhum objetivo ainda.</div>';
+  } else {
+    h += '<div style="display:flex;flex-direction:column;gap:8px">';
+    objs.forEach(function(o){ h += renderCascataObj(o); });
+    h += '</div>';
+  }
+  h += '</div></div>';
+
+  return h;
+}
+
+function renderCascataObj(o){
+  var isOpen = cascataOpenObj===o.id;
+  var op=oPct(o.id), sb=statusBadge(o), obc=objBarColor(o);
+  var taskCount=state.tasks.filter(function(t){return t.objective_id===o.id;}).length;
+
+  var h = '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">';
+
+  h += '<div class="cascata-obj-hdr" data-id="'+o.id+'" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;transition:background 0.15s">';
+  h += '<svg class="cascata-chev" style="transition:transform 0.2s;flex-shrink:0;'+(isOpen?'transform:rotate(90deg)':'')+'" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+  h += '<div style="flex:1">';
+  h += '<div style="font-size:14px;font-weight:700;color:var(--navy)">'+o.name+'</div>';
+  h += '<div style="font-size:11px;color:var(--text3)">'+taskCount+' tarefa(s) · Prazo: '+(o.due_date||'—')+'</div>';
+  h += '<div class="progress" style="margin-top:6px;height:4px"><div class="progress-fill" style="width:'+op+'%;background:'+obc+'"></div></div>';
+  h += '</div>';
+  h += '<span class="badge '+sb[0]+'">'+sb[1]+'</span>';
+  h += '<span class="badge '+pcBadge(op)+'">'+op+'%</span>';
+  h += '<button class="btn btn-sm del-obj-cascata" data-id="'+o.id+'" onclick="event.stopPropagation()" style="color:var(--red);border-color:rgba(192,57,43,0.2);background:var(--red-bg)">🗑</button>';
+  h += '</div>';
+
+  // KRs expandidos
+  h += '<div class="cascata-obj-body" style="display:'+(isOpen?'block':'none')+';border-top:1px solid var(--border);background:var(--bg);padding:12px 16px 12px 38px">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">KRs</div>';
+  h += '<div style="display:flex;gap:6px">';
+  h += '<button class="btn btn-sm btn-novo-kr-this" data-objid="'+o.id+'">+ Novo KR</button>';
+  h += '<button class="btn btn-sm btn-accent btn-nova-tarefa-this" data-objid="'+o.id+'">+ Tarefa</button>';
+  h += '</div></div>';
+
+  if(!o.krs || !o.krs.length){
+    h += '<div style="color:var(--text3);padding:14px;text-align:center;background:var(--bg2);border:1px dashed var(--border2);border-radius:var(--radius);font-size:12px">Nenhum KR ainda.</div>';
+  } else {
+    h += '<div style="display:flex;flex-direction:column;gap:6px">';
+    o.krs.forEach(function(kr){ h += renderCascataKr(kr, o.id); });
+    h += '</div>';
+  }
+
+  // Tarefas sem KR
+  var semKR=state.tasks.filter(function(t){return t.objective_id===o.id && !t.kr_id;});
+  if(semKR.length){
+    h += '<div style="margin-top:8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px">';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:8px">Sem KR vinculado</div>';
+    semKR.forEach(function(t){
+      var ov=!t.done&&isOverdue(t.due_date);
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">';
+      h += '<div class="check-box'+(t.done?' done':'')+' cascata-task-check" data-id="'+t.id+'">'+chk()+'</div>';
+      h += '<span style="flex:1;font-size:12px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red)':'')+'">'+t.name+'</span>';
+      h += (t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'');
+      h += '</div>';
+    });
+    h += '</div>';
+  }
+
+  h += '</div></div>';
+  return h;
+}
+
+function renderCascataKr(kr, objId){
+  var isOpen = cascataOpenKr===kr.id;
+  var krTasks=state.tasks.filter(function(t){return t.kr_id===kr.id;});
+  krTasks.sort(function(a,b){if(!a.due_date&&!b.due_date)return 0;if(!a.due_date)return 1;if(!b.due_date)return -1;return a.due_date.localeCompare(b.due_date);});
+  var krd=krTasks.filter(function(t){return t.done;}).length;
+  var kp=pct(krd,krTasks.length);
+  var col=kp===100?'var(--green)':kp>0?'var(--accent)':'var(--border2)';
+
+  var h = '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">';
+
+  h += '<div class="cascata-kr-hdr" data-id="'+kr.id+'" style="display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;transition:background 0.15s">';
+  h += '<svg class="cascata-chev" style="transition:transform 0.2s;flex-shrink:0;'+(isOpen?'transform:rotate(90deg)':'')+'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>';
+  h += '<div class="kr-dot" style="background:'+col+'"></div>';
+  h += '<div style="flex:1;font-size:13px;font-weight:700;color:var(--navy)">'+kr.name+'</div>';
+  if(kp>0||krTasks.length) h += '<span class="badge '+pcBadge(kp)+'">'+kp+'%</span>';
+  h += '<button class="btn btn-sm add-task-this-kr" data-krid="'+kr.id+'" data-objid="'+objId+'" onclick="event.stopPropagation()" style="font-size:11px">+ Tarefa</button>';
+  h += '</div>';
+
+  // Tarefas
+  h += '<div class="cascata-kr-body" style="display:'+(isOpen?'block':'none')+';border-top:1px solid var(--border)">';
+  if(!krTasks.length){
+    h += '<div style="padding:12px 16px;font-size:12px;color:var(--text3)">Nenhuma tarefa. Clique em "+ Tarefa".</div>';
+  } else {
+    krTasks.forEach(function(t){
+      var ov=!t.done&&isOverdue(t.due_date);
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">';
+      h += '<div class="check-box'+(t.done?' done':'')+' cascata-task-check" data-id="'+t.id+'">'+chk()+'</div>';
+      h += '<span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red);font-weight:600':'color:var(--text)')+'">'+t.name+(ov?' ⚠':'')+'</span>';
+      h += (t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'');
+      h += '</div>';
+    });
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function wireCascataTop(el){
+  var btnNP=document.getElementById('btn-novo-projeto-cascata');
+  if(btnNP) btnNP.addEventListener('click',function(){openModal('modal-dream');});
+}
+
+function wireCascataAll(el){
+  wireCascataTop(el);
+
+  // Toggle projeto
+  el.querySelectorAll('.cascata-dream-hdr').forEach(function(h){
+    h.addEventListener('click', function(){
+      var id=parseInt(this.dataset.id);
+      cascataOpenDream = cascataOpenDream===id ? null : id;
+      cascataOpenObj = null;
+      cascataOpenKr = null;
       renderCascata();
     });
   });
 
-  // ── Wire projeto click ──
-  el.querySelectorAll('.cascata-project').forEach(function(c){
-    c.addEventListener('click', function(){
-      cascataStack=[{type:'objectives',dreamId:parseInt(this.dataset.id)}];
+  // Toggle objetivo
+  el.querySelectorAll('.cascata-obj-hdr').forEach(function(h){
+    h.addEventListener('click', function(){
+      var id=parseInt(this.dataset.id);
+      cascataOpenObj = cascataOpenObj===id ? null : id;
+      cascataOpenKr = null;
       renderCascata();
     });
   });
 
-  // ── Wire objetivo click ──
-  el.querySelectorAll('.cascata-obj').forEach(function(c){
-    c.addEventListener('click', function(){
-      cascataStack=[cascataStack[0],{type:'tasks',objId:parseInt(this.dataset.id)}];
+  // Toggle KR
+  el.querySelectorAll('.cascata-kr-hdr').forEach(function(h){
+    h.addEventListener('click', function(){
+      var id=parseInt(this.dataset.id);
+      cascataOpenKr = cascataOpenKr===id ? null : id;
       renderCascata();
     });
   });
 
-  // ── Wire deletar objetivo ──
+  // Deletar projeto
+  el.querySelectorAll('.del-dream-cascata').forEach(function(b){
+    b.addEventListener('click', async function(e){
+      e.stopPropagation();
+      if(!confirm('Excluir este projeto e todos os objetivos vinculados?')) return;
+      await sbDelete('dreams', parseInt(this.dataset.id));
+      await loadAll();
+      renderCascata();
+    });
+  });
+
+  // Deletar objetivo
   el.querySelectorAll('.del-obj-cascata').forEach(function(b){
     b.addEventListener('click', async function(e){
       e.stopPropagation();
@@ -1379,19 +1362,7 @@ function renderCascata(){
     });
   });
 
-  // ── Wire KR expand/collapse ──
-  el.querySelectorAll('.kr-toggle-hdr').forEach(function(hdr){
-    hdr.addEventListener('click', function(){
-      var target=document.getElementById(this.dataset.target);
-      var chev=this.querySelector('.kr-chev');
-      if(!target) return;
-      var open=target.style.display!=='none';
-      target.style.display=open?'none':'block';
-      if(chev) chev.style.transform=open?'':'rotate(180deg)';
-    });
-  });
-
-  // ── Wire checkboxes ──
+  // Checkbox de tarefa
   el.querySelectorAll('.cascata-task-check').forEach(function(b){
     b.addEventListener('click', async function(e){
       e.stopPropagation();
@@ -1400,45 +1371,44 @@ function renderCascata(){
     });
   });
 
-  // ── Wire + Novo Projeto ──
-  var btnNP=document.getElementById('btn-novo-projeto-cascata');
-  if(btnNP) btnNP.addEventListener('click',function(){openModal('modal-dream');});
-
-  // ── Wire + Novo Objetivo ──
-  var btnNO=document.getElementById('btn-novo-obj-cascata');
-  if(btnNO) btnNO.addEventListener('click',function(){
-    var dreamId=cascataStack[0]&&cascataStack[0].dreamId;
-    editObjId=null;
-    document.getElementById('obj-modal-title').textContent='Novo Objetivo';
-    document.getElementById('o-name').value='';
-    document.getElementById('o-date').value='';
-    document.getElementById('o-status').value='on-track';
-    document.getElementById('o-dream').innerHTML='<option value="">— nenhum —</option>'+state.dreams.map(function(d){return '<option value="'+d.id+'"'+(d.id===dreamId?' selected':'')+'>'+d.name+'</option>';}).join('');
-    document.getElementById('kr-inputs').innerHTML='';
-    addKR();addKR();
-    openModal('modal-obj');
-  });
-
-  // ── Wire + Novo KR ──
-  var btnNK=document.getElementById('btn-novo-kr-cascata');
-  if(btnNK) btnNK.addEventListener('click',function(){
-    var objId=cascataStack[1]&&cascataStack[1].objId;
-    if(!objId) return;
-    openEditObj(objId);
-  });
-
-  // ── Wire + Nova Tarefa geral ──
-  var btnNT=document.getElementById('btn-nova-tarefa-cascata');
-  if(btnNT) btnNT.addEventListener('click',function(){
-    var objId=cascataStack[1]&&cascataStack[1].objId;
-    openNewTask(objId,null);
-  });
-
-  // ── Wire + Tarefa por KR ──
-  el.querySelectorAll('.add-task-this-kr').forEach(function(b){
-    b.addEventListener('click',function(e){
+  // + Novo Objetivo (dentro do projeto)
+  el.querySelectorAll('.btn-novo-obj-this').forEach(function(b){
+    b.addEventListener('click', function(e){
       e.stopPropagation();
-      openNewTask(parseInt(this.dataset.objid),parseInt(this.dataset.krid));
+      var dreamId=parseInt(this.dataset.dreamid);
+      editObjId=null;
+      document.getElementById('obj-modal-title').textContent='Novo Objetivo';
+      document.getElementById('o-name').value='';
+      document.getElementById('o-date').value='';
+      document.getElementById('o-status').value='on-track';
+      document.getElementById('o-dream').innerHTML='<option value="">— nenhum —</option>'+state.dreams.map(function(d){return '<option value="'+d.id+'"'+(d.id===dreamId?' selected':'')+'>'+d.name+'</option>';}).join('');
+      document.getElementById('kr-inputs').innerHTML='';
+      addKR();addKR();
+      openModal('modal-obj');
+    });
+  });
+
+  // + Novo KR (dentro do objetivo)
+  el.querySelectorAll('.btn-novo-kr-this').forEach(function(b){
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      openEditObj(parseInt(this.dataset.objid));
+    });
+  });
+
+  // + Tarefa (dentro do objetivo, sem KR específico)
+  el.querySelectorAll('.btn-nova-tarefa-this').forEach(function(b){
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      openNewTask(parseInt(this.dataset.objid), null);
+    });
+  });
+
+  // + Tarefa (dentro do KR específico)
+  el.querySelectorAll('.add-task-this-kr').forEach(function(b){
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      openNewTask(parseInt(this.dataset.objid), parseInt(this.dataset.krid));
     });
   });
 }
