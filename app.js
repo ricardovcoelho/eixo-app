@@ -52,6 +52,7 @@ function showApp() {
   document.getElementById('auth-screen').style.display = 'none'; document.getElementById('app-screen').style.display = 'block';
   initApp();
   startTokenAutoRefresh();
+  setTimeout(maybeShowOnboarding, 600);
 }
 let _tokenRefreshInterval = null;
 function startTokenAutoRefresh() {
@@ -1562,7 +1563,16 @@ function renderPerfil(){
       <div class="fg"><label>Email</label><input id="perfil-email" type="email" value="${email}" placeholder="seu@email.com"></div>
       <div id="perfil-msg" style="display:none;padding:10px 14px;border-radius:10px;font-size:13px;margin-bottom:12px"></div>
       <button class="btn btn-accent" id="btn-save-perfil">Salvar alterações</button>
+    </div>
+    <div class="card" style="max-width:480px;margin-top:14px">
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">Tutorial</h2>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Rever a introdução de como o Eixo funciona.</p>
+      <button class="btn" id="btn-rever-onboarding">Rever tutorial</button>
     </div>`;
+
+  document.getElementById('btn-rever-onboarding').addEventListener('click', function(){
+    window._reverOnboarding();
+  });
 
   document.getElementById('btn-save-perfil').addEventListener('click', async function(){
     var name=document.getElementById('perfil-name').value.trim();
@@ -1628,3 +1638,169 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 });
+
+// ══════════════════════════════════════════
+// ONBOARDING — 4 telas para novos usuários
+// ══════════════════════════════════════════
+let onboardingStep = 0;
+
+function shouldShowOnboarding() {
+  if (!currentUser) return false;
+  return !localStorage.getItem('eixo_onboarding_done_' + currentUser.id);
+}
+
+function markOnboardingDone() {
+  if (currentUser) localStorage.setItem('eixo_onboarding_done_' + currentUser.id, 'true');
+}
+
+function maybeShowOnboarding() {
+  if (shouldShowOnboarding()) {
+    onboardingStep = 0;
+    openOnboarding();
+  }
+}
+
+function openOnboarding() {
+  if (!document.getElementById('onboarding-overlay')) {
+    const div = document.createElement('div');
+    div.id = 'onboarding-overlay';
+    div.className = 'ob-overlay';
+    document.body.appendChild(div);
+  }
+  renderOnboarding();
+  document.getElementById('onboarding-overlay').classList.add('open');
+}
+
+function closeOnboarding(skip) {
+  const el = document.getElementById('onboarding-overlay');
+  if (el) el.classList.remove('open');
+  markOnboardingDone();
+}
+
+function renderOnboarding() {
+  const el = document.getElementById('onboarding-overlay');
+  if (!el) return;
+
+  const steps = [
+    {
+      icon: '🎯',
+      title: 'Bem-vindo ao Eixo',
+      subtitle: 'Seu sistema de produtividade tem três pilares',
+      body: `
+        <div class="ob-pillars">
+          <div class="ob-pillar">
+            <div class="ob-pillar-icon" style="background:var(--accent-bg);color:var(--accent)">⭐</div>
+            <div class="ob-pillar-title">Projetos</div>
+            <div class="ob-pillar-text">Garantem foco no que é realmente importante para você — seus grandes objetivos de vida.</div>
+          </div>
+          <div class="ob-pillar">
+            <div class="ob-pillar-icon" style="background:var(--teal-bg);color:var(--teal)">🔄</div>
+            <div class="ob-pillar-title">Rotinas</div>
+            <div class="ob-pillar-text">Garantem as entregas do seu dia a dia — hábitos que se repetem e constroem consistência.</div>
+          </div>
+          <div class="ob-pillar">
+            <div class="ob-pillar-icon" style="background:rgba(46,125,82,0.1);color:var(--green)">⚡</div>
+            <div class="ob-pillar-title">Afazeres</div>
+            <div class="ob-pillar-text">Garantem espaço para temas aleatórios que surgem no seu dia, sem perder o foco no resto.</div>
+          </div>
+        </div>
+      `
+    },
+    {
+      icon: '⭐',
+      title: 'Projetos: do sonho à tarefa',
+      subtitle: 'Tudo cascateia até a ação concreta',
+      body: `
+        <div class="ob-cascade-demo">
+          <div class="ob-cascade-item ob-level-1">
+            <div class="ob-cascade-dot" style="background:var(--accent)"></div>
+            <div><div class="ob-cascade-label">PROJETO</div><div class="ob-cascade-name">Ficar em forma</div></div>
+          </div>
+          <div class="ob-cascade-arrow">↓</div>
+          <div class="ob-cascade-item ob-level-2">
+            <div class="ob-cascade-dot" style="background:var(--teal)"></div>
+            <div><div class="ob-cascade-label">OBJETIVO</div><div class="ob-cascade-name">Perder 5kg em 3 meses</div></div>
+          </div>
+          <div class="ob-cascade-arrow">↓</div>
+          <div class="ob-cascade-item ob-level-3">
+            <div class="ob-cascade-dot" style="background:var(--green)"></div>
+            <div><div class="ob-cascade-label">KR</div><div class="ob-cascade-name">Treinar 4x por semana</div></div>
+          </div>
+          <div class="ob-cascade-arrow">↓</div>
+          <div class="ob-cascade-item ob-level-4">
+            <div class="ob-cascade-check"></div>
+            <div><div class="ob-cascade-label">TAREFA</div><div class="ob-cascade-name">Ir à academia hoje às 18h</div></div>
+          </div>
+        </div>
+        <p class="ob-tip">💡 Clique em qualquer nível para expandir e ver o próximo. Marque tarefas como feitas para acompanhar seu progresso.</p>
+      `
+    },
+    {
+      icon: '🔄',
+      title: 'Rotinas: consistência no dia a dia',
+      subtitle: 'Diferentes formas de configurar sua recorrência',
+      body: `
+        <div class="ob-freq-list">
+          <div class="ob-freq-item"><span class="ob-freq-badge">Diária</span> Todos os dias, sem exceção</div>
+          <div class="ob-freq-item"><span class="ob-freq-badge">Dias úteis</span> Segunda a sexta</div>
+          <div class="ob-freq-item"><span class="ob-freq-badge">Semanal</span> Uma vez por semana</div>
+          <div class="ob-freq-item"><span class="ob-freq-badge">Dias específicos</span> Você escolhe quais dias da semana</div>
+          <div class="ob-freq-item"><span class="ob-freq-badge">Dia(s) fixo(s) do mês</span> Ex: todo dia 5 e dia 20</div>
+        </div>
+        <p class="ob-tip">💡 Acompanhe semana a semana com a grade visual — marque ✓ quando cumprir, ✗ quando não der.</p>
+      `
+    },
+    {
+      icon: '⚡',
+      title: 'Afazeres: o que surge no caminho',
+      subtitle: 'Sem objetivo, sem rotina — só precisa ser feito',
+      body: `
+        <div class="ob-examples">
+          <div class="ob-example">🥛 Comprar leite</div>
+          <div class="ob-example">📞 Ligar para o irmão</div>
+          <div class="ob-example">📚 Comprar aquele livro</div>
+          <div class="ob-example">🐱 Ver data da vacina do gato</div>
+        </div>
+        <p class="ob-tip">💡 Afazeres não atrapalham seus Projetos — eles ficam num espaço separado, só para você não esquecer.</p>
+      `
+    }
+  ];
+
+  const total = steps.length;
+  const s = steps[onboardingStep];
+
+  let dots = '';
+  for (let i = 0; i < total; i++) {
+    dots += `<div class="ob-dot${i===onboardingStep?' active':''}"></div>`;
+  }
+
+  el.innerHTML = `
+    <div class="ob-modal">
+      <button class="ob-skip" id="ob-skip-btn">Pular</button>
+      <div class="ob-icon">${s.icon}</div>
+      <div class="ob-title">${s.title}</div>
+      <div class="ob-subtitle">${s.subtitle}</div>
+      <div class="ob-body">${s.body}</div>
+      <div class="ob-dots">${dots}</div>
+      <div class="ob-actions">
+        ${onboardingStep > 0 ? '<button class="btn" id="ob-prev-btn">Voltar</button>' : '<div></div>'}
+        <button class="btn btn-accent" id="ob-next-btn">${onboardingStep === total - 1 ? 'Começar a usar' : 'Próximo'}</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('ob-skip-btn').addEventListener('click', () => closeOnboarding());
+  if (onboardingStep > 0) {
+    document.getElementById('ob-prev-btn').addEventListener('click', () => { onboardingStep--; renderOnboarding(); });
+  }
+  document.getElementById('ob-next-btn').addEventListener('click', () => {
+    if (onboardingStep === total - 1) closeOnboarding();
+    else { onboardingStep++; renderOnboarding(); }
+  });
+}
+
+// Botão para rever o onboarding manualmente (ex: dentro de Configurações)
+window._reverOnboarding = function() {
+  onboardingStep = 0;
+  openOnboarding();
+};
