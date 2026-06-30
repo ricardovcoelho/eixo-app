@@ -337,8 +337,8 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .home-quote-text{color:rgba(255,255,255,0.85);font-size:16px;line-height:1.75;font-style:italic;position:relative;z-index:1}
 .home-quote-author{color:var(--accent);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:14px}
 .home-cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;z-index:1;position:relative}
-.home-glass-card{background:rgba(255,255,255,0.13);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.18);border-radius:22px;padding:24px;transition:all 0.2s;box-shadow:0 4px 24px rgba(0,0,0,0.25)}
-.home-glass-card:hover{background:rgba(255,255,255,0.18);transform:translateY(-3px);box-shadow:0 24px 60px rgba(0,0,0,0.35)}
+.home-glass-card{background:rgba(255,255,255,0.16);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.28);border-radius:22px;padding:24px;transition:all 0.2s;box-shadow:0 8px 28px rgba(0,0,0,0.35)}
+.home-glass-card:hover{background:rgba(255,255,255,0.22);transform:translateY(-3px);box-shadow:0 24px 60px rgba(0,0,0,0.4)}
 .home-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .home-card-title{color:rgba(255,255,255,0.35);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;display:flex;align-items:center;gap:8px}
 .home-card-count{background:rgba(198,93,59,0.18);color:#E8856A;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;border:1px solid rgba(198,93,59,0.25)}
