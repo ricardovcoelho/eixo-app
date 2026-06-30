@@ -464,6 +464,7 @@ function renderObjs(){
 function renderTasks(){
   var el=document.getElementById('task-list');
   var tasks=state.tasks.filter(function(t){if(taskFilter==='pending')return !t.done;if(taskFilter==='done')return t.done;return true;});
+  tasks.sort(function(a,b){if(!a.due_date&&!b.due_date)return 0;if(!a.due_date)return 1;if(!b.due_date)return -1;return a.due_date.localeCompare(b.due_date);});
   if(!tasks.length){el.innerHTML='<div style="color:var(--text3);padding:24px;text-align:center">Nenhuma tarefa.</div>';return;}
   var h='<div class="card">';
   tasks.forEach(function(t){
@@ -506,7 +507,16 @@ function renderRoutines(){
         h+='<div class="rcell"><div class="rdot'+(cv===true?' ok':cv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+curMoKey+'"></div></div><div></div>';
         var freq2=r.frequency,rdow2=r.day_of_week!==null&&r.day_of_week!==undefined?parseInt(r.day_of_week):-1;
         function wkActive(w){return freq2==='daily'||freq2==='weekdays'||freq2==='weekly'||freq2==='custom_day'||(freq2==='monthly'&&w===4);}
-        function dayActive(dow){if(freq2==='daily')return true;if(freq2==='weekdays')return dow>=1&&dow<=5;if(freq2==='weekly')return dow===1;if(freq2==='custom_day')return dow===rdow2;return false;}
+        function dayActive(dow){
+          if(freq2==='daily')return true;
+          if(freq2==='weekdays')return dow>=1&&dow<=5;
+          if(freq2==='weekly')return dow===1;
+          if(freq2==='custom_day'){
+            var days=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];
+            return days.indexOf(dow)!==-1;
+          }
+          return false;
+        }
         for(var w=1;w<=5;w++){var wkey=wk(w),wv=checks[wkey],wa=wkActive(w);if(wa){h+='<div class="rcell"><div class="rsq'+(wv===true?' ok':wv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+wkey+'">S'+w+'</div></div>';}else{h+='<div class="rcell"><div style="width:22px;height:22px;border-radius:4px;border:1.5px solid var(--border);background:var(--bg2)"></div></div>';}}
         h+='<div></div>';
         for(var d2=0;d2<7;d2++){var dkey='day'+yr+'-'+mo+'-w'+d2,dv=checks[dkey],da=dayActive(d2);if(da){h+='<div class="rcell"><div class="rsq'+(dv===true?' ok':dv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+dkey+'">'+DAYS[d2]+'</div></div>';}else{h+='<div class="rcell"><div style="width:22px;height:22px;border-radius:4px;border:1.5px solid var(--border);background:var(--bg2)"></div></div>';}}
@@ -1388,16 +1398,11 @@ function renderCascata(){
     });
   });
 
-  // Após fechar modals, refresh cascata
-  document.querySelectorAll('[data-close]').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      setTimeout(function(){
-        if(document.getElementById('page-cascata').classList.contains('active')){
-          loadAll().then(renderCascata);
-        }
-      },300);
-    });
-  });
+  // Após salvar obj, refresh cascata
+  var origBtnSaveObj = document.getElementById('btn-save-obj');
+  if(origBtnSaveObj) {
+    origBtnSaveObj._cascataRefresh = true;
+  }
 }
 
 // ══ PERFIL ══
