@@ -306,6 +306,14 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   .main{overflow-x:hidden}
   .matrix-wrap{grid-template-columns:1fr}
   .home-cards-grid{grid-template-columns:1fr}
+
+  /* Cascata (Projetos > Objetivos > KRs) — quebra em 2 linhas no mobile */
+  .cascata-dream-hdr,.cascata-obj-hdr,.cascata-kr-hdr{flex-wrap:wrap!important}
+  .cascata-row-title{flex:1 1 100%!important;min-width:0!important}
+  .cascata-row-actions{flex:1 1 100%!important;justify-content:flex-end!important;flex-wrap:wrap!important;margin-top:8px}
+  .cascata-dream-body{padding:14px 12px 14px 22px!important}
+  .cascata-obj-body{padding:10px 12px 10px 18px!important}
+  .badge{font-size:10px!important;padding:3px 8px!important}
 }
 
 /* ══ GLASS PANEL ══ */
