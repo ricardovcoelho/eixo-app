@@ -51,15 +51,6 @@ function showAuth() { document.getElementById('auth-screen').style.display = 'fl
 function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
-  var sb = document.getElementById('sidebar');
-  var app = document.querySelector('.app');
-  if (window.innerWidth <= 700) {
-    sb.style.display = 'none';
-    app.style.paddingLeft = '0';
-  } else {
-    sb.style.display = 'flex';
-    app.style.paddingLeft = '64px';
-  }
   initApp();
   startTokenAutoRefresh();
   setTimeout(maybeShowOnboarding, 600);
@@ -213,23 +204,7 @@ async function initApp(){
     nav(item.dataset.page,null,true);
   }));
   document.getElementById('btn-back').addEventListener('click',()=>nav('sonhos'));
-  document.getElementById('burger').addEventListener('click',()=>{
-    var sb=document.getElementById('sidebar');
-    var ov=document.getElementById('mob-overlay');
-    if(sb.style.display==='flex'){
-      sb.style.display='none';
-      ov.classList.remove('open');
-    } else {
-      sb.style.display='flex';
-      sb.style.position='fixed';
-      sb.style.left='0';
-      sb.style.top='0';
-      sb.style.bottom='0';
-      sb.style.width='220px';
-      sb.style.zIndex='200';
-      ov.classList.add('open');
-    }
-  });
+  document.getElementById('burger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');document.getElementById('mob-overlay').classList.toggle('open');});
   document.getElementById('mob-overlay').addEventListener('click',closeSidebar);
   document.querySelectorAll('#task-tabs .tab').forEach(tab=>tab.addEventListener('click',()=>{taskFilter=tab.dataset.filter;document.querySelectorAll('#task-tabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');renderTasks();}));
   const theme=localStorage.getItem('eixo_global_theme_'+currentUser?.id)||'light';
@@ -1164,11 +1139,10 @@ function renderAgendaSingleDay(d){
 // ══ PATCH: sidebar wiring para nova estrutura ══
 (function patchSidebar(){
   window.closeSidebar = function(){
-    var sb=document.getElementById('sidebar');
+    var s=document.getElementById('sidebar');
     var o=document.getElementById('mob-overlay');
-    if(window.innerWidth<=700 && sb) sb.style.display='none';
-    else if(sb) sb.classList.remove('open');
-    if(o) o.classList.remove('open');
+    if(s)s.classList.remove('open');
+    if(o)o.classList.remove('open');
   };
 })();
 
