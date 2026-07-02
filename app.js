@@ -386,78 +386,101 @@ function renderDash(){
   var weekEnd=new Date(weekStart);weekEnd.setDate(weekStart.getDate()+6);weekEnd.setHours(23,59,59,999);
   function inWeek(d){if(!d)return false;var dt=new Date(d+'T00:00:00');return dt>=weekStart&&dt<=weekEnd;}
 
-  // % projetos com progresso esta semana
-  var projTotal=state.dreams.length;
-  var projAtivos=state.dreams.filter(function(d){return dPct(d.id)>0;}).length;
-  var projPct=projTotal?Math.round((projAtivos/projTotal)*100):0;
+  // métricas de tarefas
+  var allTasks=state.tasks;
+  var taskDone=allTasks.filter(function(t){return t.done;}).length;
+  var taskTotal=allTasks.length;
+  var taskDonePct=taskTotal?Math.round((taskDone/taskTotal)*100):0;
+  var taskAtrasadas=allTasks.filter(function(t){return !t.done&&isOverdue(t.due_date);}).length;
+  var taskAtrasadasPct=taskTotal?Math.round((taskAtrasadas/taskTotal)*100):0;
 
-  // % tarefas concluídas esta semana
-  var taskSemana=state.tasks.filter(function(t){return inWeek(t.due_date)||inWeek(t.done_at);});
-  var taskDone=taskSemana.filter(function(t){return t.done;}).length;
-  var taskPct=taskSemana.length?Math.round((taskDone/taskSemana.length)*100):0;
-
-  // % rotinas feitas hoje
-  var rotTotal=state.routines.filter(function(r){return !r.done;}).length+state.routines.filter(function(r){return r.done;}).length;
+  // métricas de rotinas
+  var rotTotal=state.routines.length;
   var rotDone=state.routines.filter(function(r){return r.done;}).length;
   var rotPct=rotTotal?Math.round((rotDone/rotTotal)*100):0;
 
-  // atrasados
+  // projetos atrasados
   var projAtrasados=state.dreams.filter(function(d){
     var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
-    return state.tasks.some(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);});
+    return allTasks.some(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);});
   });
-  var taskAtrasadas=state.tasks.filter(function(t){return !t.done&&isOverdue(t.due_date);}).length;
-  var totalAtrasado=taskAtrasadas;
 
-  function ringCard(label,pct,color,icon){
-    var r=28,circ=2*Math.PI*r,offset=circ*(1-pct/100);
-    return '<div class="dash-ring-card"><div class="dash-ring-icon">'+icon+'</div>'
-      +'<svg width="72" height="72" viewBox="0 0 72 72"><circle cx="36" cy="36" r="'+r+'" fill="none" stroke="var(--bg3)" stroke-width="6"/>'
-      +'<circle cx="36" cy="36" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="6" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round" transform="rotate(-90 36 36)"/>'
-      +'<text x="36" y="40" text-anchor="middle" font-size="14" font-weight="800" fill="'+color+'" font-family="inherit">'+pct+'%</text></svg>'
-      +'<div class="dash-ring-label">'+label+'</div></div>';
+  function ring(pct,color,size){
+    var s=size||56,r=(s/2)-6,circ=2*Math.PI*r,offset=circ*(1-pct/100);
+    return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 '+s+' '+s+'">'
+      +'<circle cx="'+(s/2)+'" cy="'+(s/2)+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="5"/>'
+      +'<circle cx="'+(s/2)+'" cy="'+(s/2)+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="5" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round" transform="rotate(-90 '+(s/2)+' '+(s/2)+')"/>'
+      +'<text x="'+(s/2)+'" y="'+(s/2+5)+'" text-anchor="middle" font-size="13" font-weight="800" fill="'+color+'" font-family="inherit">'+pct+'%</text>'
+      +'</svg>';
   }
 
-  // monta HTML
   var h='';
 
-  // linha de alerta se tiver atrasados
-  if(totalAtrasado>0){
-    h+='<div style="display:flex;align-items:center;gap:12px;background:var(--red-bg);border:1.5px solid rgba(192,57,43,0.25);border-radius:14px;padding:14px 18px;margin-bottom:20px">'
-      +'<div style="font-size:28px">⚠️</div>'
-      +'<div><div style="font-weight:800;color:var(--red);font-size:15px">'+totalAtrasado+' tarefa'+(totalAtrasado>1?'s':'')+' atrasada'+(totalAtrasado>1?'s':'')+'</div>'
-      +'<div style="font-size:12px;color:var(--text3);margin-top:2px">'+projAtrasados.length+' projeto'+(projAtrasados.length!==1?'s':'')+' com pendências em atraso</div></div>'
-      +'</div>';
+  // ── PAINEL HERO ──
+  h+='<div class="dash-hero">';
+
+  // bloco esquerdo — projetos (destaque)
+  h+='<div class="dash-hero-main">';
+  h+='<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Projetos</div>';
+  h+='<div style="display:flex;align-items:center;gap:20px">';
+  // anel % feito
+  var projDonePct=state.dreams.length?Math.round(state.dreams.reduce(function(a,d){return a+dPct(d.id);},0)/state.dreams.length):0;
+  h+='<div style="text-align:center">';
+  h+=ring(projDonePct,'#4CAF88',72);
+  h+='<div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:4px">Realizado</div></div>';
+  // anel % atrasado
+  var projAtrasadosPct=state.dreams.length?Math.round((projAtrasados.length/state.dreams.length)*100):0;
+  h+='<div style="text-align:center">';
+  h+=ring(projAtrasadosPct,'#E8856A',72);
+  h+='<div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:4px">Em atraso</div></div>';
+  // números
+  h+='<div style="flex:1;padding-left:8px">';
+  h+='<div style="font-size:32px;font-weight:900;color:#fff;line-height:1">'+state.dreams.length+'</div>';
+  h+='<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:10px">projeto(s)</div>';
+  if(projAtrasados.length>0){
+    h+='<div style="font-size:12px;color:#E8856A;font-weight:700">⚠ '+projAtrasados.length+' com atraso</div>';
+  } else {
+    h+='<div style="font-size:12px;color:#4CAF88;font-weight:700">✓ Em dia</div>';
   }
+  h+='</div></div></div>';
 
-  // cards de progresso semanal
-  h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Esta semana</div>';
-  h+='<div class="dash-rings-row">';
-  h+=ringCard('Projetos',projPct,'var(--accent)','📁');
-  h+=ringCard('Tarefas',taskPct,'var(--teal)','✅');
-  h+=ringCard('Rotinas',rotPct,'var(--green)','🔄');
-  h+='</div>';
+  // bloco direito — tarefas e rotinas
+  h+='<div class="dash-hero-side">';
+  // tarefas feitas
+  h+='<div class="dash-side-card">';
+  h+='<div style="display:flex;align-items:center;gap:12px">';
+  h+=ring(taskDonePct,'var(--teal)',52);
+  h+='<div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Tarefas feitas</div>';
+  h+='<div style="font-size:20px;font-weight:800;color:var(--text)">'+taskDone+'/'+taskTotal+'</div>';
+  if(taskAtrasadas>0) h+='<div style="font-size:11px;color:var(--red);font-weight:600">'+taskAtrasadas+' atrasada'+(taskAtrasadas>1?'s':'')+'</div>';
+  h+='</div></div></div>';
+  // rotinas
+  h+='<div class="dash-side-card">';
+  h+='<div style="display:flex;align-items:center;gap:12px">';
+  h+=ring(rotPct,'var(--green)',52);
+  h+='<div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Rotinas hoje</div>';
+  h+='<div style="font-size:20px;font-weight:800;color:var(--text)">'+rotDone+'/'+rotTotal+'</div></div></div></div>';
+  h+='</div>'; // dash-hero-side
+  h+='</div>'; // dash-hero
 
-  // projetos atrasados
+  // ── PROJETOS COM ATRASO ──
   if(projAtrasados.length>0){
     h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px">Projetos com atraso</div>';
     h+=projAtrasados.map(function(d){
       var p=dPct(d.id);
       var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
-      var ovCount=state.tasks.filter(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
+      var ovCount=allTasks.filter(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
       return '<div class="dream-card" data-id="'+d.id+'" style="border-left:4px solid var(--red);cursor:pointer">'
         +'<div style="display:flex;align-items:center;gap:12px">'
-        +'<div style="flex:1;min-width:0">'
-        +'<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+d.name+'</div>'
+        +'<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;margin-bottom:4px">'+d.name+'</div>'
         +'<div style="font-size:11px;color:var(--red);font-weight:600">⚠ '+ovCount+' tarefa'+(ovCount>1?'s':'')+' atrasada'+(ovCount>1?'s':'')+'</div>'
-        +'<div class="progress" style="margin-top:8px"><div class="progress-fill" style="width:'+p+'%;background:var(--red)"></div></div>'
-        +'</div>'
+        +'<div class="progress" style="margin-top:8px"><div class="progress-fill" style="width:'+p+'%;background:var(--red)"></div></div></div>'
         +'<div style="font-size:26px;font-weight:800;color:var(--red);flex-shrink:0">'+p+'%</div>'
         +'</div></div>';
     }).join('');
   }
 
-  // todos os projetos
+  // ── TODOS OS PROJETOS ──
   h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px">Meus Projetos</div>';
   if(!state.dreams.length){
     h+='<div style="color:var(--text3);padding:24px;text-align:center">Nenhum projeto cadastrado.</div>';
@@ -465,14 +488,14 @@ function renderDash(){
     h+=state.dreams.map(function(d){
       var p=dPct(d.id);
       var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
-      var ovCount=state.tasks.filter(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
+      var ovCount=allTasks.filter(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
       var bc=ovCount>0?'var(--red)':'var(--green)';
       var stxt=ovCount>0?'<span style="font-size:11px;color:var(--red);font-weight:600">⚠ '+ovCount+' atrasada(s)</span>':'<span style="font-size:11px;color:var(--text3)">'+state.objectives.filter(function(o){return o.dream_id===d.id;}).length+' objetivo(s)</span>';
       return '<div class="dream-card" data-id="'+d.id+'" style="cursor:pointer"><div style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;margin-bottom:4px">'+d.name+'</div>'+stxt+'<div class="progress"><div class="progress-fill" style="width:'+p+'%;background:'+bc+'"></div></div></div><div style="font-size:26px;font-weight:800;color:'+(ovCount>0?'var(--red)':'var(--accent)')+'">'+p+'%</div></div></div>';
     }).join('');
   }
 
-  // matriz foco
+  // ── MATRIZ FOCO ──
   h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px">Matriz Foco</div>';
 
   document.getElementById('dash-metrics').innerHTML='';

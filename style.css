@@ -519,11 +519,11 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .ob-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .ob-actions .btn{flex:1;justify-content:center}
 
-/* Dashboard — cards de progresso semanal */
-.dash-rings-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:8px}
-.dash-ring-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:8px}
-.dash-ring-icon{font-size:22px}
-.dash-ring-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;text-align:center}
+/* Dashboard — painel hero */
+.dash-hero{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:8px}
+.dash-hero-main{background:var(--navy);border-radius:18px;padding:22px;color:#fff}
+.dash-hero-side{display:flex;flex-direction:column;gap:12px}
+.dash-side-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px 18px}
 
 @media(max-width:640px){
   .ob-modal{padding:28px 22px 24px}
@@ -531,6 +531,5 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   .ob-cascade-item.ob-level-2{margin-left:10px}
   .ob-cascade-item.ob-level-3{margin-left:20px}
   .ob-cascade-item.ob-level-4{margin-left:30px}
-  .dash-rings-row{grid-template-columns:repeat(3,1fr);gap:8px}
-  .dash-ring-card{padding:14px 8px 10px}
+  .dash-hero{grid-template-columns:1fr}
 }
