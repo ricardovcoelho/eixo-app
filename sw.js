@@ -1,4 +1,4 @@
-const CACHE = 'goodday-v1';
+const CACHE = 'goodday-v3';
 const ASSETS = ['/', '/index.html', '/app.js', '/style.css', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -15,7 +15,12 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.url.includes('/api/')) return;
+  // Network first — garante sempre a versão mais nova
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+    fetch(e.request).then(r => {
+      var rc = r.clone();
+      caches.open(CACHE).then(c => c.put(e.request, rc));
+      return r;
+    }).catch(() => caches.match(e.request))
   );
 });
