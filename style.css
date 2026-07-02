@@ -1,4 +1,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+@media(max-width:1024px){html{font-size:20px!important;-webkit-text-size-adjust:100%}}
 html{width:100%;max-width:100vw;overflow-x:hidden}
 body{width:100%;max-width:100vw;overflow-x:hidden}
 :root{
@@ -53,7 +55,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Inter','Sego
 /* Good Day v2.1 — mobile fix */
 /* ══ LAYOUT ══ */
 .app{display:flex;height:100vh;overflow:hidden;padding-left:64px}
-@media(max-width:640px){.app{padding-left:0!important}}
+@media(max-width:1024px){.app{padding-left:0!important}}
 
 /* ══ SIDEBAR ══ */
 .sidebar{
@@ -70,7 +72,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Inter','Sego
   overflow:hidden;
   transition:width 0.25s cubic-bezier(0.4,0,0.2,1);
 }
-@media(max-width:640px){
+@media(max-width:1024px){
   .sidebar{left:-100vw!important;width:220px!important;transition:left 0.25s ease!important}
   .sidebar.open{left:0!important}
 }
@@ -295,7 +297,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .burger span{width:18px;height:2px;background:var(--text2);border-radius:1px;display:block}
 .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:99}
 .mob-overlay.open{display:block}
-@media(max-width:640px){
+@media(max-width:1024px){
   .app{padding-left:0}
   .sidebar{position:fixed;left:-220px;top:0;bottom:0;z-index:200;transition:left 0.25s;width:220px}
   .sidebar.open{left:0}
@@ -409,10 +411,10 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .home-wrap.light .home-item-done .home-item-name{color:var(--text3)}
 .home-wrap.light .home-theme-btn{background:rgba(27,27,58,0.05);border-color:rgba(27,27,58,0.1);color:var(--text3)}
 .home-wrap.light .home-theme-btn:hover{background:rgba(27,27,58,0.1);color:var(--text)}
-@media(max-width:640px){.home-wrap{padding:28px 20px;gap:24px}.home-name{font-size:2rem}.home-cards-grid{grid-template-columns:1fr}}
+@media(max-width:1024px){.home-wrap{padding:28px 20px;gap:24px}.home-name{font-size:2rem}.home-cards-grid{grid-template-columns:1fr}}
 
 /* ══ SIDEBAR EXPANSÍVEL (só desktop) ══ */
-@media(min-width:641px){
+@media(min-width:1025px){
 .sidebar{
   width:64px;
   transition:width 0.25s ease;
@@ -543,7 +545,7 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .dash-metric-sub{font-size:0.875rem;color:var(--text3)}
 
 @media(max-width:900px){.dash-metric-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:640px){
+@media(max-width:1024px){
   .ob-modal{padding:28px 22px 24px}
   .ob-examples{grid-template-columns:1fr}
   .ob-cascade-item.ob-level-2{margin-left:10px}
@@ -552,11 +554,4 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   .dash-metric-grid{grid-template-columns:repeat(2,1fr);gap:10px}
   .dash-metric-card{padding:14px}
   .dash-metric-num{font-size:1.375rem}
-}
-
-/* ══ MOBILE — tamanho base maior ══ */
-@media(max-width:768px){
-  html{font-size:20px!important;-webkit-text-size-adjust:100%}
-  .btn{min-height:48px}
-  input,select,textarea{font-size:1rem!important}
 }
