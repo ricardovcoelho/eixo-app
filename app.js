@@ -51,15 +51,14 @@ function showAuth() { document.getElementById('auth-screen').style.display = 'fl
 function showApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
-  // Força layout mobile se tela pequena
+  var sb = document.getElementById('sidebar');
+  var app = document.querySelector('.app');
   if (window.innerWidth <= 700) {
-    document.querySelector('.app').style.paddingLeft = '0';
-    var sb = document.getElementById('sidebar');
-    sb.style.left = '-100vw';
-    sb.style.width = '220px';
-    sb.style.transition = 'left 0.25s ease';
-    sb.style.position = 'fixed';
-    sb.style.zIndex = '200';
+    sb.style.display = 'none';
+    app.style.paddingLeft = '0';
+  } else {
+    sb.style.display = 'flex';
+    app.style.paddingLeft = '64px';
   }
   initApp();
   startTokenAutoRefresh();
@@ -217,10 +216,18 @@ async function initApp(){
   document.getElementById('burger').addEventListener('click',()=>{
     var sb=document.getElementById('sidebar');
     var ov=document.getElementById('mob-overlay');
-    var isOpen=sb.classList.toggle('open');
-    ov.classList.toggle('open',isOpen);
-    if(window.innerWidth<=700){
-      sb.style.left=isOpen?'0':'-100vw';
+    if(sb.style.display==='flex'){
+      sb.style.display='none';
+      ov.classList.remove('open');
+    } else {
+      sb.style.display='flex';
+      sb.style.position='fixed';
+      sb.style.left='0';
+      sb.style.top='0';
+      sb.style.bottom='0';
+      sb.style.width='220px';
+      sb.style.zIndex='200';
+      ov.classList.add('open');
     }
   });
   document.getElementById('mob-overlay').addEventListener('click',closeSidebar);
@@ -1157,12 +1164,10 @@ function renderAgendaSingleDay(d){
 // ══ PATCH: sidebar wiring para nova estrutura ══
 (function patchSidebar(){
   window.closeSidebar = function(){
-    var s=document.getElementById('sidebar');
+    var sb=document.getElementById('sidebar');
     var o=document.getElementById('mob-overlay');
-    if(s){
-      s.classList.remove('open');
-      if(window.innerWidth<=700) s.style.left='-100vw';
-    }
+    if(window.innerWidth<=700 && sb) sb.style.display='none';
+    else if(sb) sb.classList.remove('open');
     if(o) o.classList.remove('open');
   };
 })();
