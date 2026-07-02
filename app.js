@@ -382,9 +382,6 @@ window._openGlassFromDay=function(type,id,dayKey){if(type==='task'){const t=stat
 // ─── RENDER DASH ─────────────────────────────────────────────────────────────
 function renderDash(){
   var tod=today();
-  var weekStart=new Date(tod);weekStart.setDate(tod.getDate()-tod.getDay()+1);weekStart.setHours(0,0,0,0);
-  var weekEnd=new Date(weekStart);weekEnd.setDate(weekStart.getDate()+6);weekEnd.setHours(23,59,59,999);
-  function inWeek(d){if(!d)return false;var dt=new Date(d+'T00:00:00');return dt>=weekStart&&dt<=weekEnd;}
 
   // métricas de tarefas
   var allTasks=state.tasks;
@@ -399,99 +396,98 @@ function renderDash(){
   var rotDone=state.routines.filter(function(r){return r.done;}).length;
   var rotPct=rotTotal?Math.round((rotDone/rotTotal)*100):0;
 
-  // projetos atrasados
-  var projAtrasados=state.dreams.filter(function(d){
+  // métricas de projetos
+  var projTotal=state.dreams.length;
+  var projDonePct=projTotal?Math.round(state.dreams.reduce(function(a,d){return a+dPct(d.id);},0)/projTotal):0;
+  var projComAtraso=state.dreams.filter(function(d){
     var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
     return allTasks.some(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);});
-  });
+  }).length;
 
-  function ring(pct,color,size){
-    var s=size||56,r=(s/2)-6,circ=2*Math.PI*r,offset=circ*(1-pct/100);
-    return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 '+s+' '+s+'">'
-      +'<circle cx="'+(s/2)+'" cy="'+(s/2)+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="5"/>'
+  function miniRing(pct,color,size){
+    var s=size||52,r=(s/2)-5,circ=2*Math.PI*r,offset=circ*(1-pct/100);
+    return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 '+s+' '+s+'" style="flex-shrink:0">'
+      +'<circle cx="'+(s/2)+'" cy="'+(s/2)+'" r="'+r+'" fill="none" stroke="var(--bg3)" stroke-width="5"/>'
       +'<circle cx="'+(s/2)+'" cy="'+(s/2)+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="5" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round" transform="rotate(-90 '+(s/2)+' '+(s/2)+')"/>'
-      +'<text x="'+(s/2)+'" y="'+(s/2+5)+'" text-anchor="middle" font-size="13" font-weight="800" fill="'+color+'" font-family="inherit">'+pct+'%</text>'
+      +'<text x="'+(s/2)+'" y="'+(s/2+5)+'" text-anchor="middle" font-size="12" font-weight="800" fill="'+color+'" font-family="inherit">'+pct+'%</text>'
       +'</svg>';
   }
 
   var h='';
 
-  // ── PAINEL HERO ──
-  h+='<div class="dash-hero">';
+  // ── CARDS DE MÉTRICAS ──
+  h+='<div class="dash-metric-grid">';
 
-  // bloco esquerdo — projetos (destaque)
-  h+='<div class="dash-hero-main">';
-  h+='<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Projetos</div>';
-  h+='<div style="display:flex;align-items:center;gap:20px">';
-  // anel % feito
-  var projDonePct=state.dreams.length?Math.round(state.dreams.reduce(function(a,d){return a+dPct(d.id);},0)/state.dreams.length):0;
-  h+='<div style="text-align:center">';
-  h+=ring(projDonePct,'#4CAF88',72);
-  h+='<div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:4px">Realizado</div></div>';
-  // anel % atrasado
-  var projAtrasadosPct=state.dreams.length?Math.round((projAtrasados.length/state.dreams.length)*100):0;
-  h+='<div style="text-align:center">';
-  h+=ring(projAtrasadosPct,'#E8856A',72);
-  h+='<div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:4px">Em atraso</div></div>';
-  // números
-  h+='<div style="flex:1;padding-left:8px">';
-  h+='<div style="font-size:32px;font-weight:900;color:#fff;line-height:1">'+state.dreams.length+'</div>';
-  h+='<div style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:10px">projeto(s)</div>';
-  if(projAtrasados.length>0){
-    h+='<div style="font-size:12px;color:#E8856A;font-weight:700">⚠ '+projAtrasados.length+' com atraso</div>';
-  } else {
-    h+='<div style="font-size:12px;color:#4CAF88;font-weight:700">✓ Em dia</div>';
-  }
-  h+='</div></div></div>';
+  // card projetos
+  h+='<div class="dash-metric-card">'
+    +'<div class="dash-metric-top"><span class="dash-metric-icon" style="background:rgba(198,93,59,0.1);color:var(--accent)">📁</span>'
+    +'<span class="dash-metric-label">Projetos</span></div>'
+    +'<div class="dash-metric-num">'+projTotal+'</div>'
+    +'<div class="dash-metric-bar"><div style="height:100%;width:'+projDonePct+'%;background:var(--accent);border-radius:4px;transition:width 0.4s"></div></div>'
+    +'<div class="dash-metric-sub">'+(projComAtraso>0?'<span style="color:var(--red)">⚠ '+projComAtraso+' com atraso</span>':'<span style="color:var(--green)">✓ Em dia</span>')+'</div>'
+    +'</div>';
 
-  // bloco direito — tarefas e rotinas
-  h+='<div class="dash-hero-side">';
-  // tarefas feitas
-  h+='<div class="dash-side-card">';
-  h+='<div style="display:flex;align-items:center;gap:12px">';
-  h+=ring(taskDonePct,'var(--teal)',52);
-  h+='<div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Tarefas feitas</div>';
-  h+='<div style="font-size:20px;font-weight:800;color:var(--text)">'+taskDone+'/'+taskTotal+'</div>';
-  if(taskAtrasadas>0) h+='<div style="font-size:11px;color:var(--red);font-weight:600">'+taskAtrasadas+' atrasada'+(taskAtrasadas>1?'s':'')+'</div>';
-  h+='</div></div></div>';
-  // rotinas
-  h+='<div class="dash-side-card">';
-  h+='<div style="display:flex;align-items:center;gap:12px">';
-  h+=ring(rotPct,'var(--green)',52);
-  h+='<div><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px">Rotinas hoje</div>';
-  h+='<div style="font-size:20px;font-weight:800;color:var(--text)">'+rotDone+'/'+rotTotal+'</div></div></div></div>';
-  h+='</div>'; // dash-hero-side
-  h+='</div>'; // dash-hero
+  // card tarefas feitas
+  h+='<div class="dash-metric-card">'
+    +'<div class="dash-metric-top"><span class="dash-metric-icon" style="background:rgba(53,95,121,0.1);color:var(--teal)">✅</span>'
+    +'<span class="dash-metric-label">Tarefas feitas</span></div>'
+    +'<div style="display:flex;align-items:center;gap:12px">'
+    +miniRing(taskDonePct,'var(--teal)',56)
+    +'<div><div class="dash-metric-num" style="margin-bottom:0">'+taskDone+'<span style="font-size:14px;font-weight:400;color:var(--text3)">/'+taskTotal+'</span></div>'
+    +(taskAtrasadas>0?'<div style="font-size:11px;color:var(--red);font-weight:600;margin-top:2px">'+taskAtrasadas+' atrasada'+(taskAtrasadas>1?'s':'')+'</div>':'')
+    +'</div></div></div>';
 
-  // ── PROJETOS COM ATRASO ──
-  if(projAtrasados.length>0){
-    h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px">Projetos com atraso</div>';
-    h+=projAtrasados.map(function(d){
-      var p=dPct(d.id);
-      var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
-      var ovCount=allTasks.filter(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
-      return '<div class="dream-card" data-id="'+d.id+'" style="border-left:4px solid var(--red);cursor:pointer">'
-        +'<div style="display:flex;align-items:center;gap:12px">'
-        +'<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;margin-bottom:4px">'+d.name+'</div>'
-        +'<div style="font-size:11px;color:var(--red);font-weight:600">⚠ '+ovCount+' tarefa'+(ovCount>1?'s':'')+' atrasada'+(ovCount>1?'s':'')+'</div>'
-        +'<div class="progress" style="margin-top:8px"><div class="progress-fill" style="width:'+p+'%;background:var(--red)"></div></div></div>'
-        +'<div style="font-size:26px;font-weight:800;color:var(--red);flex-shrink:0">'+p+'%</div>'
-        +'</div></div>';
-    }).join('');
-  }
+  // card tarefas atrasadas %
+  h+='<div class="dash-metric-card">'
+    +'<div class="dash-metric-top"><span class="dash-metric-icon" style="background:rgba(192,57,43,0.1);color:var(--red)">⚠️</span>'
+    +'<span class="dash-metric-label">Em atraso</span></div>'
+    +'<div style="display:flex;align-items:center;gap:12px">'
+    +miniRing(taskAtrasadasPct,'var(--red)',56)
+    +'<div><div class="dash-metric-num" style="margin-bottom:0;color:var(--red)">'+taskAtrasadas+'<span style="font-size:14px;font-weight:400;color:var(--text3)"> tarefa'+(taskAtrasadas!==1?'s':'')+'</span></div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+taskAtrasadasPct+'% do total</div>'
+    +'</div></div></div>';
 
-  // ── TODOS OS PROJETOS ──
+  // card rotinas
+  h+='<div class="dash-metric-card">'
+    +'<div class="dash-metric-top"><span class="dash-metric-icon" style="background:rgba(46,125,82,0.1);color:var(--green)">🔄</span>'
+    +'<span class="dash-metric-label">Rotinas hoje</span></div>'
+    +'<div style="display:flex;align-items:center;gap:12px">'
+    +miniRing(rotPct,'var(--green)',56)
+    +'<div><div class="dash-metric-num" style="margin-bottom:0">'+rotDone+'<span style="font-size:14px;font-weight:400;color:var(--text3)">/'+rotTotal+'</span></div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:2px">concluídas</div>'
+    +'</div></div></div>';
+
+  h+='</div>'; // dash-metric-grid
+
+  // ── PROJETOS (lista única, atrasados primeiro com destaque) ──
   h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px">Meus Projetos</div>';
   if(!state.dreams.length){
     h+='<div style="color:var(--text3);padding:24px;text-align:center">Nenhum projeto cadastrado.</div>';
   } else {
-    h+=state.dreams.map(function(d){
+    // ordena: atrasados primeiro
+    var sorted=state.dreams.slice().sort(function(a,b){
+      var aObjIds=state.objectives.filter(function(o){return o.dream_id===a.id;}).map(function(o){return o.id;});
+      var bObjIds=state.objectives.filter(function(o){return o.dream_id===b.id;}).map(function(o){return o.id;});
+      var aOv=allTasks.some(function(t){return !t.done&&aObjIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);})?1:0;
+      var bOv=allTasks.some(function(t){return !t.done&&bObjIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);})?1:0;
+      return bOv-aOv;
+    });
+    h+=sorted.map(function(d){
       var p=dPct(d.id);
       var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
       var ovCount=allTasks.filter(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
-      var bc=ovCount>0?'var(--red)':'var(--green)';
-      var stxt=ovCount>0?'<span style="font-size:11px;color:var(--red);font-weight:600">⚠ '+ovCount+' atrasada(s)</span>':'<span style="font-size:11px;color:var(--text3)">'+state.objectives.filter(function(o){return o.dream_id===d.id;}).length+' objetivo(s)</span>';
-      return '<div class="dream-card" data-id="'+d.id+'" style="cursor:pointer"><div style="display:flex;align-items:flex-start;gap:12px"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;margin-bottom:4px">'+d.name+'</div>'+stxt+'<div class="progress"><div class="progress-fill" style="width:'+p+'%;background:'+bc+'"></div></div></div><div style="font-size:26px;font-weight:800;color:'+(ovCount>0?'var(--red)':'var(--accent)')+'">'+p+'%</div></div></div>';
+      var isOv=ovCount>0;
+      var bc=isOv?'var(--red)':'var(--green)';
+      var stxt=isOv
+        ?'<span style="font-size:11px;color:var(--red);font-weight:600">⚠ '+ovCount+' tarefa'+(ovCount>1?'s':'')+' atrasada'+(ovCount>1?'s':'')+'</span>'
+        :'<span style="font-size:11px;color:var(--text3)">'+state.objectives.filter(function(o){return o.dream_id===d.id;}).length+' objetivo(s)</span>';
+      return '<div class="dream-card" data-id="'+d.id+'" style="cursor:pointer'+(isOv?';border-left:4px solid var(--red)':'')+'">'
+        +'<div style="display:flex;align-items:flex-start;gap:12px">'
+        +'<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;margin-bottom:4px">'+d.name+'</div>'
+        +stxt
+        +'<div class="progress" style="margin-top:8px"><div class="progress-fill" style="width:'+p+'%;background:'+bc+'"></div></div></div>'
+        +'<div style="font-size:26px;font-weight:800;color:'+(isOv?'var(--red)':'var(--accent)')+';flex-shrink:0">'+p+'%</div>'
+        +'</div></div>';
     }).join('');
   }
 
