@@ -49,7 +49,18 @@ function logout() {
 // ─── AUTH UI ─────────────────────────────────────────────────────────────────
 function showAuth() { document.getElementById('auth-screen').style.display = 'flex'; document.getElementById('app-screen').style.display = 'none'; }
 function showApp() {
-  document.getElementById('auth-screen').style.display = 'none'; document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  // Força layout mobile se tela pequena
+  if (window.innerWidth <= 700) {
+    document.querySelector('.app').style.paddingLeft = '0';
+    var sb = document.getElementById('sidebar');
+    sb.style.left = '-100vw';
+    sb.style.width = '220px';
+    sb.style.transition = 'left 0.25s ease';
+    sb.style.position = 'fixed';
+    sb.style.zIndex = '200';
+  }
   initApp();
   startTokenAutoRefresh();
   setTimeout(maybeShowOnboarding, 600);
@@ -203,7 +214,15 @@ async function initApp(){
     nav(item.dataset.page,null,true);
   }));
   document.getElementById('btn-back').addEventListener('click',()=>nav('sonhos'));
-  document.getElementById('burger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');document.getElementById('mob-overlay').classList.toggle('open');});
+  document.getElementById('burger').addEventListener('click',()=>{
+    var sb=document.getElementById('sidebar');
+    var ov=document.getElementById('mob-overlay');
+    var isOpen=sb.classList.toggle('open');
+    ov.classList.toggle('open',isOpen);
+    if(window.innerWidth<=700){
+      sb.style.left=isOpen?'0':'-100vw';
+    }
+  });
   document.getElementById('mob-overlay').addEventListener('click',closeSidebar);
   document.querySelectorAll('#task-tabs .tab').forEach(tab=>tab.addEventListener('click',()=>{taskFilter=tab.dataset.filter;document.querySelectorAll('#task-tabs .tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');renderTasks();}));
   const theme=localStorage.getItem('eixo_global_theme_'+currentUser?.id)||'light';
@@ -1137,12 +1156,14 @@ function renderAgendaSingleDay(d){
 
 // ══ PATCH: sidebar wiring para nova estrutura ══
 (function patchSidebar(){
-  // Override closeSidebar
   window.closeSidebar = function(){
     var s=document.getElementById('sidebar');
     var o=document.getElementById('mob-overlay');
-    if(s)s.classList.remove('open');
-    if(o)o.classList.remove('open');
+    if(s){
+      s.classList.remove('open');
+      if(window.innerWidth<=700) s.style.left='-100vw';
+    }
+    if(o) o.classList.remove('open');
   };
 })();
 
