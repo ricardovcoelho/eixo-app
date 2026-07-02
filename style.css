@@ -111,7 +111,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Inter','Sego
 
 /* ══ MAIN ══ */
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-width:0}
-.topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0}
+.topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg2);flex-shrink:0;padding-top:max(14px,env(safe-area-inset-top))}
 .topbar-title{font-size:20px;font-weight:700;color:var(--navy);letter-spacing:-0.5px}
 .topbar-sub{font-size:12px;color:var(--text3);margin-top:1px}
 .content{flex:1;overflow-y:auto;overflow-x:hidden;padding:28px 32px;background:var(--bg);max-width:100%}
@@ -289,11 +289,12 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .mob-overlay.open{display:block}
 @media(max-width:640px){
   .app{padding-left:0}
-  .sidebar{position:fixed;left:calc(-1 * var(--sidebar-w));top:0;bottom:0;z-index:200;transition:left 0.2s}
-  .sidebar.open{left:0;width:200px}
+  .sidebar{position:fixed;left:-220px;top:0;bottom:0;z-index:200;transition:left 0.25s;width:220px}
+  .sidebar.open{left:0}
   .sidebar.open .nav-item-label,.sidebar.open .sidebar-logo-text,.sidebar.open .nav-section-label{opacity:1}
   .burger{display:flex!important;position:relative;z-index:10}
-  .topbar{padding:12px 16px}.content{padding:16px}
+  .topbar{padding:12px 16px}
+  .content{padding:14px;padding-bottom:env(safe-area-inset-bottom,14px)}
   .grid-4{grid-template-columns:1fr 1fr}.metric-val{font-size:24px}
   .form-row{grid-template-columns:1fr}
   .r-table{overflow-x:auto}.r-hdr,.r-row{min-width:580px}
@@ -303,11 +304,16 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   .agenda-event{min-width:0}
   .agenda-event span{min-width:0}
   body{overflow-x:hidden}
-  .main{overflow-x:hidden}
+  .main{overflow-x:hidden;width:100vw}
   .matrix-wrap{grid-template-columns:1fr}
   .home-cards-grid{grid-template-columns:1fr}
+  .home-wrap{padding:20px 16px}
+  .home-name{font-size:32px}
+  .dash-metric-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .dash-metric-card{padding:14px}
+  .dash-metric-num{font-size:22px}
 
-  /* Cascata (Projetos > Objetivos > KRs) — quebra em 2 linhas no mobile */
+  /* Cascata mobile */
   .cascata-dream-hdr,.cascata-obj-hdr,.cascata-kr-hdr{flex-wrap:wrap!important}
   .cascata-row-title{flex:1 1 100%!important;min-width:0!important}
   .cascata-row-actions{flex:1 1 100%!important;justify-content:flex-end!important;flex-wrap:wrap!important;margin-top:8px}

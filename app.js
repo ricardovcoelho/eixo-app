@@ -873,7 +873,7 @@ function renderHome(){
   todayRoutines=getEventsForDate(ds).filter(function(e){return e.type==='routine';});
   var doneRoutines=todayRoutines.filter(function(e){var r=state.routines.find(function(x){return x.id===e.id;});return r&&r.checks&&r.checks[dayKey]===true;});
   var h='<div class="home-wrap'+(homeTheme==='light'?' light':'')+'" id="home-wrap"><button class="home-theme-btn" id="home-theme-toggle">'+(homeTheme==='light'?'🌙 Escuro':'☀️ Claro')+'</button>';
-  h+='<div><div class="home-greeting">'+getGreeting()+'</div><div class="home-name">Ricardo 👋</div><div class="home-date">'+dateStr+'</div></div>';
+  h+='<div><div class="home-greeting">'+getGreeting()+'</div><div class="home-name">'+(currentUser&&currentUser.name?currentUser.name:'Você')+' 👋</div><div class="home-date">'+dateStr+'</div></div>';
   h+='<div class="home-quote-card"><div class="home-quote-text">'+q[0]+'</div><div class="home-quote-author">— '+q[1]+'</div></div>';
   h+='<div class="home-cards-grid">';
   var tTotal=todayTasks.length+doneTasks.length;
@@ -935,7 +935,7 @@ function renderHome(){
 
   var h='<div class="home-wrap'+(homeTheme==='light'?' light':'')+'" id="home-wrap">';
   h+='<button class="home-theme-btn" id="home-theme-toggle">'+(homeTheme==='light'?'🌙 Escuro':'☀️ Claro')+'</button>';
-  h+='<div><div class="home-greeting">'+getGreeting()+'</div><div class="home-name">Ricardo 👋</div><div class="home-date">'+dateStr+'</div></div>';
+  h+='<div><div class="home-greeting">'+getGreeting()+'</div><div class="home-name">'+(currentUser&&currentUser.name?currentUser.name:'Você')+' 👋</div><div class="home-date">'+dateStr+'</div></div>';
   h+='<div class="home-quote-card"><div class="home-quote-text">'+q[0]+'</div><div class="home-quote-author">— '+q[1]+'</div></div>';
   h+='<div class="home-cards-grid">';
 
