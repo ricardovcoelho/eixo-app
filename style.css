@@ -50,6 +50,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Inter','Sego
 
 /* ══ LAYOUT ══ */
 .app{display:flex;height:100vh;overflow:hidden;padding-left:64px}
+@media(max-width:640px){.app{padding-left:0!important}}
 
 /* ══ SIDEBAR ══ */
 .sidebar{
@@ -65,6 +66,10 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Inter','Sego
   z-index:150;
   overflow:hidden;
   transition:width 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+@media(max-width:640px){
+  .sidebar{left:-100vw!important;width:220px!important;transition:left 0.25s ease!important}
+  .sidebar.open{left:0!important}
 }
 .sidebar:hover{
   width:200px;
