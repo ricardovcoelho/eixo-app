@@ -92,7 +92,7 @@ function wireAuth() {
     document.getElementById('auth-signup').style.display = 'none'; document.getElementById('auth-login').style.display = 'block';
     document.getElementById('btn-login').click();
   });
-  document.getElementById('btn-logout').addEventListener('click', () => { if (confirm('Sair do Eixo?')) logout(); });
+  document.getElementById('btn-logout').addEventListener('click', () => { if (confirm('Sair do Good Day?')) logout(); });
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -374,7 +374,7 @@ window._openGlassFromDay=function(type,id,dayKey){if(type==='task'){const t=stat
   if (earlyTheme === 'dark') document.body.classList.add('dark-theme');
 
   const style=document.createElement('style');
-  style.textContent=`.auth-wrap{min-height:100vh;background:linear-gradient(145deg,#1B1B3A,#252558,#1a3a4a);display:flex;align-items:center;justify-content:center;padding:24px}.auth-card{background:rgba(255,255,255,0.07);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:40px;width:min(400px,100%)}.auth-logo{width:52px;height:52px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff;margin:0 auto 16px}.auth-title{color:#fff;font-size:26px;font-weight:800;text-align:center;letter-spacing:-0.5px;margin-bottom:4px}.auth-sub{color:rgba(255,255,255,0.4);font-size:13px;text-align:center;margin-bottom:28px}.auth-card .fg{margin-bottom:14px}.auth-card .fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);margin-bottom:6px}.auth-card .fg input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;transition:all 0.15s}.auth-card .fg input:focus{outline:none;border-color:var(--accent)}.auth-card .fg input::placeholder{color:rgba(255,255,255,0.3)}.auth-btn{width:100%;padding:13px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}.auth-btn:disabled{opacity:0.5;cursor:not-allowed}.auth-switch{text-align:center;font-size:13px;color:rgba(255,255,255,0.4);margin-top:16px}.auth-switch span{color:var(--accent);cursor:pointer;font-weight:600}.auth-error{background:rgba(198,93,59,0.15);border:1px solid rgba(198,93,59,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#E8856A;margin-bottom:12px}`;
+  style.textContent=`.auth-wrap{min-height:100vh;background:linear-gradient(145deg,#1B1B3A,#252558,#1a3a4a);display:flex;align-items:center;justify-content:center;padding:24px}.auth-card{background:rgba(255,255,255,0.07);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:40px;width:min(400px,100%)}.auth-logo{width:72px;height:72px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}.auth-title{color:#fff;font-size:26px;font-weight:800;text-align:center;letter-spacing:-0.5px;margin-bottom:4px}.auth-sub{color:rgba(255,255,255,0.4);font-size:13px;text-align:center;margin-bottom:28px}.auth-card .fg{margin-bottom:14px}.auth-card .fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);margin-bottom:6px}.auth-card .fg input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;transition:all 0.15s}.auth-card .fg input:focus{outline:none;border-color:var(--accent)}.auth-card .fg input::placeholder{color:rgba(255,255,255,0.3)}.auth-btn{width:100%;padding:13px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}.auth-btn:disabled{opacity:0.5;cursor:not-allowed}.auth-switch{text-align:center;font-size:13px;color:rgba(255,255,255,0.4);margin-top:16px}.auth-switch span{color:var(--accent);cursor:pointer;font-weight:600}.auth-error{background:rgba(198,93,59,0.15);border:1px solid rgba(198,93,59,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#E8856A;margin-bottom:12px}`;
   document.head.appendChild(style);
   if(authToken&&currentUser){tryRefresh().finally(showApp);}else{showAuth();wireAuth();}
 })();
@@ -1572,7 +1572,7 @@ function renderPerfil(){
     </div>
     <div class="card" style="max-width:480px;margin-top:14px">
       <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">Tutorial</h2>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Rever a introdução de como o Eixo funciona.</p>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Rever a introdução de como o Good Day funciona.</p>
       <button class="btn" id="btn-rever-onboarding">Rever tutorial</button>
     </div>`;
 
@@ -1690,7 +1690,7 @@ function renderOnboarding() {
   const steps = [
     {
       icon: '🎯',
-      title: 'Bem-vindo ao Eixo',
+      title: 'Bem-vindo ao Good Day',
       subtitle: 'Seu sistema de produtividade tem três pilares',
       body: `
         <div class="ob-pillars">
