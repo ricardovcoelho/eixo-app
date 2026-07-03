@@ -202,6 +202,7 @@ async function initApp(){
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     item.classList.add('active');
     nav(item.dataset.page,null,true);
+    closeSidebar();
   }));
   document.getElementById('btn-back').addEventListener('click',()=>nav('sonhos'));
   document.getElementById('burger').addEventListener('click',()=>{document.getElementById('sidebar').classList.toggle('open');document.getElementById('mob-overlay').classList.toggle('open');});
@@ -942,7 +943,7 @@ function renderHome(){
 
   // Quadro 1: Projetos
   var pTotal=projTasks.length+projDone.length;
-  h+='<div class="home-glass-card"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Projetos</div><span class="home-card-count'+(projTasks.length===0?' ok':'')+'">'+projDone.length+'/'+pTotal+'</span></div>';
+  h+='<div class="home-glass-card" data-nav="cascata" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Projetos</div><span class="home-card-count'+(projTasks.length===0?' ok':'')+'">'+projDone.length+'/'+pTotal+'</span></div>';
   if(!pTotal){h+='<div class="home-empty">Nenhuma tarefa de projeto hoje 🎉</div>';}
   else{
     projTasks.forEach(function(t){var ov=t.due_date.substring(0,10)<ds;h+='<div class="home-item'+(ov?' home-item-overdue':'')+'"><div class="home-check" data-home-task="'+t.id+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+(ov?' ⚠':'')+'</div></div>';});
@@ -952,14 +953,14 @@ function renderHome(){
 
   // Quadro 2: Rotinas
   var catDots={gestao:'#7DB5D0',vendas:'#E8856A',pessoal:'#6BBF8E',desenv:'rgba(255,255,255,0.4)'};
-  h+='<div class="home-glass-card"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2.1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Rotinas</div><span class="home-card-count'+(doneRoutines.length===todayRoutines.length&&todayRoutines.length?' ok':'')+'">'+doneRoutines.length+'/'+todayRoutines.length+'</span></div>';
+  h+='<div class="home-glass-card" data-nav="rotinas" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2.1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Rotinas</div><span class="home-card-count'+(doneRoutines.length===todayRoutines.length&&todayRoutines.length?' ok':'')+'">'+doneRoutines.length+'/'+todayRoutines.length+'</span></div>';
   if(!todayRoutines.length){h+='<div class="home-empty">Nenhuma rotina hoje</div>';}
   else{todayRoutines.forEach(function(ev){var r=state.routines.find(function(x){return x.id===ev.id;}),done=r&&r.checks&&r.checks[dayKey]===true;h+='<div class="home-item'+(done?' home-item-done':'')+'"><div class="home-check'+(done?' done':'')+'" data-home-routine="'+ev.id+'" data-home-key="'+dayKey+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-dot" style="background:'+(r?catDots[r.category]||'rgba(255,255,255,0.4)':'rgba(255,255,255,0.4)')+'"></div><div class="home-item-name">'+r.name+'</div></div>';});}
   h+='<div class="home-progress-mini"><div class="home-progress-mini-fill" style="width:'+(todayRoutines.length?Math.round(doneRoutines.length/todayRoutines.length*100):100)+'%;background:linear-gradient(90deg,#355F79,#7DB5D0)"></div></div></div>';
 
   // Quadro 3: Afazeres
   var aTotal=afazTasks.length+afazDone.length;
-  h+='<div class="home-glass-card"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Afazeres</div><span class="home-card-count'+(afazTasks.length===0?' ok':'')+'">'+afazDone.length+'/'+aTotal+'</span></div>';
+  h+='<div class="home-glass-card" data-nav="acoes" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Afazeres</div><span class="home-card-count'+(afazTasks.length===0?' ok':'')+'">'+afazDone.length+'/'+aTotal+'</span></div>';
   if(!aTotal){h+='<div class="home-empty">Nenhum afazer para hoje 🎉</div>';}
   else{
     afazTasks.forEach(function(t){var ov=t.due_date.substring(0,10)<ds;h+='<div class="home-item'+(ov?' home-item-overdue':'')+'"><div class="home-check" data-home-task="'+t.id+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+(ov?' ⚠':'')+'</div></div>';});
@@ -971,12 +972,10 @@ function renderHome(){
   el.innerHTML=h;
 
   document.getElementById('home-theme-toggle').addEventListener('click',function(){var wrap=document.getElementById('home-wrap'),isLight=wrap.classList.contains('light');wrap.classList.toggle('light',!isLight);localStorage.setItem('eixo_home_theme',isLight?'dark':'light');this.textContent=isLight?'☀️ Claro':'🌙 Escuro';});
+  el.querySelectorAll('.home-glass-card[data-nav]').forEach(function(card){card.addEventListener('click',function(e){if(e.target.closest('.home-check'))return;nav(card.dataset.nav);});});
   el.querySelectorAll('.home-check[data-home-task]').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();await toggleTask(parseInt(this.getAttribute('data-home-task')));renderHome();});});
   el.querySelectorAll('.home-check[data-home-routine]').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();var id=parseInt(this.getAttribute('data-home-routine')),key=this.getAttribute('data-home-key'),r=state.routines.find(function(x){return x.id===id;});if(!r)return;if(!r.checks)r.checks={};r.checks[key]=r.checks[key]===true?null:true;await sbUpdate('routines',r.id,{checks:r.checks});renderHome();});});
 }
-
-// ══════════════════════════════════════════
-// NOVA AGENDA — 4 modos: hoje, 3dias, semana, 7dias
 // ══════════════════════════════════════════
 function renderAgenda(){
   var el=document.getElementById('agenda-content');
