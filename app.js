@@ -424,7 +424,7 @@ function renderDash(){
   h+='<div class="dash-metric-grid">';
 
   // card projetos
-  h+='<div class="dash-metric-card">'
+  h+='<div class="dash-metric-card" data-nav="cascata" style="cursor:pointer">'
     +'<div class="dash-metric-top"><span class="dash-metric-icon" style="background:rgba(198,93,59,0.1);color:var(--accent)">📁</span>'
     +'<span class="dash-metric-label">Projetos</span></div>'
     +'<div class="dash-metric-num">'+projTotal+'</div>'
@@ -433,7 +433,7 @@ function renderDash(){
     +'</div>';
 
   // card tarefas feitas
-  h+='<div class="dash-metric-card">'
+  h+='<div class="dash-metric-card" data-nav="tarefas" style="cursor:pointer">'
     +'<div class="dash-metric-top"><span class="dash-metric-icon" style="background:rgba(53,95,121,0.1);color:var(--teal)">✅</span>'
     +'<span class="dash-metric-label">Tarefas feitas</span></div>'
     +'<div style="display:flex;align-items:center;gap:12px">'
@@ -443,7 +443,7 @@ function renderDash(){
     +'</div></div></div>';
 
   // card tarefas atrasadas %
-  h+='<div class="dash-metric-card">'
+  h+='<div class="dash-metric-card" data-nav="tarefas" style="cursor:pointer">'
     +'<div class="dash-metric-top"><span class="dash-metric-icon" style="background:rgba(192,57,43,0.1);color:var(--red)">⚠️</span>'
     +'<span class="dash-metric-label">Em atraso</span></div>'
     +'<div style="display:flex;align-items:center;gap:12px">'
@@ -453,7 +453,7 @@ function renderDash(){
     +'</div></div></div>';
 
   // card rotinas
-  h+='<div class="dash-metric-card">'
+  h+='<div class="dash-metric-card" data-nav="rotinas" style="cursor:pointer">'
     +'<div class="dash-metric-top"><span class="dash-metric-icon" style="background:rgba(46,125,82,0.1);color:var(--green)">🔄</span>'
     +'<span class="dash-metric-label">Rotinas hoje</span></div>'
     +'<div style="display:flex;align-items:center;gap:12px">'
@@ -501,7 +501,8 @@ function renderDash(){
 
   document.getElementById('dash-metrics').innerHTML='';
   document.getElementById('dash-dreams').innerHTML=h;
-  document.querySelectorAll('#dash-dreams .dream-card').forEach(function(c){c.addEventListener('click',function(){nav('dream-detail',parseInt(this.dataset.id));});});
+  document.querySelectorAll('#dash-dreams .dash-metric-card[data-nav]').forEach(function(c){c.addEventListener('click',function(){nav(this.dataset.nav);});});
+  document.querySelectorAll('#dash-dreams .dream-card').forEach(function(c){c.addEventListener('click',function(){nav('cascata');});});
   renderMatrizFull(document.getElementById('matriz-dash'),false);
 }
 
