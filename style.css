@@ -540,3 +540,14 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   .btn{min-height:48px;font-size:1rem!important}
   input,select,textarea{font-size:1rem!important}
 }
+
+/* ══ DASHBOARD ══ */
+.dash-metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.dash-metric-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:18px}
+.dash-metric-top{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.dash-metric-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.dash-metric-label{font-size:0.75rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.dash-metric-num{font-size:1.75rem;font-weight:800;color:var(--text);line-height:1;margin-bottom:8px}
+.dash-metric-bar{height:6px;background:var(--bg3);border-radius:4px;margin-bottom:8px;overflow:hidden}
+.dash-metric-sub{font-size:0.75rem;color:var(--text3)}
+@media(max-width:1024px){.dash-metric-grid{grid-template-columns:repeat(2,1fr);gap:10px}}
