@@ -1486,7 +1486,7 @@ function renderCascataObj(o){
 
 function renderCascataKr(kr, objId){
   var isOpen = cascataOpenKr===kr.id;
-  var krTasks=state.tasks.filter(function(t){return t.kr_id===kr.id;});
+  var krTasks=state.tasks.filter(function(t){return t.kr_id===kr.id&&t.objective_id===objId;});
   krTasks.sort(function(a,b){if(!a.due_date&&!b.due_date)return 0;if(!a.due_date)return 1;if(!b.due_date)return -1;return a.due_date.localeCompare(b.due_date);});
   var krd=krTasks.filter(function(t){return t.done;}).length;
   var kp=pct(krd,krTasks.length);
