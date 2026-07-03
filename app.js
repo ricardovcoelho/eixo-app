@@ -1517,6 +1517,8 @@ function renderCascataKr(kr, objId){
       h += '<div class="check-box'+(t.done?' done':'')+' cascata-task-check" data-id="'+t.id+'">'+chk()+'</div>';
       h += '<span style="flex:1;font-size:13px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red);font-weight:600':'color:var(--text)')+'">'+t.name+(ov?' ⚠':'')+'</span>';
       h += (t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'');
+      h += '<button class="btn btn-sm btn-icon cascata-edt-task" data-id="'+t.id+'" onclick="event.stopPropagation()">'+edt()+'</button>';
+      h += '<button class="btn btn-sm btn-icon cascata-del-task" data-id="'+t.id+'" onclick="event.stopPropagation()">'+trsh()+'</button>';
       h += '</div>';
     });
   }
@@ -1631,6 +1633,23 @@ function wireCascataAll(el){
     b.addEventListener('click', function(e){
       e.stopPropagation();
       openNewTask(parseInt(this.dataset.objid), parseInt(this.dataset.krid));
+    });
+  });
+
+  // Editar/Deletar tarefa dentro do KR na cascata
+  el.querySelectorAll('.cascata-edt-task').forEach(function(b){
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      openEditTask(parseInt(this.dataset.id));
+    });
+  });
+  el.querySelectorAll('.cascata-del-task').forEach(function(b){
+    b.addEventListener('click', async function(e){
+      e.stopPropagation();
+      if(!confirm('Excluir esta tarefa?')) return;
+      await sbDelete('tasks', parseInt(this.dataset.id));
+      state.tasks=state.tasks.filter(function(t){return t.id!==parseInt(b.dataset.id);});
+      renderCascata();
     });
   });
 
