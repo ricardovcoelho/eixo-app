@@ -94,7 +94,8 @@ function wireAuth() {
     document.getElementById('btn-login').click();
   });
   document.getElementById('btn-logout').addEventListener('click', () => { if (confirm('Sair do Good Day?')) logout(); });
-  document.getElementById('nav-relatorio').addEventListener('click', () => openRelatorio());
+  document.getElementById('nav-relatorio').addEventListener('click', () => openModal('modal-relatorio'));
+  document.getElementById('btn-gerar-relatorio').addEventListener('click', () => gerarRelatorio());
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -809,38 +810,7 @@ function getEventsForDate(dateStr){
 }
 
 // ══ RELATÓRIO ══════════════════════════════════════════════════════════════
-function openRelatorio(){
-  var existing=document.getElementById('modal-relatorio');
-  if(existing)existing.remove();
-  var m=document.createElement('div');
-  m.id='modal-relatorio';
-  m.className='overlay';
-  m.style.display='flex';
-  m.style.zIndex='9000';
-  m.innerHTML='<div class="modal" style="max-width:480px;width:100%">'
-    +'<button class="modal-close" onclick="document.getElementById(\'modal-relatorio\').remove()">×</button>'
-    +'<h3 style="margin-bottom:20px">📄 Gerar Relatório</h3>'
-    +'<div class="fg"><label>Período</label><select id="rel-periodo">'
-    +'<option value="mes" selected>Este mês</option>'
-    +'<option value="semana">Esta semana</option>'
-    +'<option value="hoje">Hoje</option>'
-    +'<option value="tudo">Tudo (completo)</option>'
-    +'</select></div>'
-    +'<div class="fg"><label style="margin-bottom:10px;display:block">Seções</label>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
-    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-dashboard" checked> Dashboard</label>'
-    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-projetos" checked> Projetos</label>'
-    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-rotinas" checked> Rotinas</label>'
-    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-afazeres" checked> Afazeres</label>'
-    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-agenda" checked> Agenda</label>'
-    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-matriz" checked> Matriz Foco</label>'
-    +'</div></div>'
-    +'<div class="modal-footer">'
-    +'<button class="btn" onclick="document.getElementById(\'modal-relatorio\').remove()">Cancelar</button>'
-    +'<button class="btn btn-accent" onclick="gerarRelatorio()">🖨 Imprimir / Salvar PDF</button>'
-    +'</div></div>';
-  document.body.appendChild(m);
-}
+function openRelatorio(){ openModal('modal-relatorio'); }
 
 function gerarRelatorio(){
   var periodo=document.getElementById('rel-periodo').value;
@@ -952,7 +922,7 @@ function gerarRelatorio(){
   win.document.close();
   win.focus();
   setTimeout(function(){win.print();},800);
-  document.getElementById('modal-relatorio').remove();
+  closeModal('modal-relatorio');
 }
 // ══════════════════════════════════════════════════════════════════════════
 

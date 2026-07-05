@@ -192,6 +192,37 @@
 </div>
 
 <div id="modals-container"></div>
+
+<div class="overlay" id="modal-relatorio">
+  <div class="modal" style="max-width:480px;width:100%">
+    <button class="modal-close" data-close="modal-relatorio">×</button>
+    <h3 style="margin-bottom:20px">📄 Gerar Relatório</h3>
+    <div class="fg">
+      <label>Período</label>
+      <select id="rel-periodo">
+        <option value="mes" selected>Este mês</option>
+        <option value="semana">Esta semana</option>
+        <option value="hoje">Hoje</option>
+        <option value="tudo">Tudo (completo)</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label style="margin-bottom:10px;display:block">Seções</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-dashboard" checked> Dashboard</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-projetos" checked> Projetos</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-rotinas" checked> Rotinas</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-afazeres" checked> Afazeres</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-agenda" checked> Agenda</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-matriz" checked> Matriz Foco</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" data-close="modal-relatorio">Cancelar</button>
+      <button class="btn btn-accent" id="btn-gerar-relatorio">🖨 Imprimir / Salvar PDF</button>
+    </div>
+  </div>
+</div>
 <script src="/app.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
