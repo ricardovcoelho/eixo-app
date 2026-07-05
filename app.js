@@ -865,23 +865,76 @@ function gerarRelatorio(){
   if(secProj){
     h+='<h2>📁 Projetos</h2>';
     state.dreams.forEach(function(d){
-      var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
       var p=dPct(d.id);
+      var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
       var ovCount=state.tasks.filter(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
-      h+='<h3>'+d.name+' <span class="badge '+(ovCount>0?'badge-red':'badge-green')+'">'+(ovCount>0?'⚠ '+ovCount+' atrasada(s)':'Em dia')+'</span> <span class="badge badge-gray">'+p+'%</span></h3>'
+      h+='<h3 style="font-size:15px;color:#1B1B3A;margin:20px 0 6px">📁 '+d.name
+        +' <span class="badge '+(ovCount>0?'badge-red':'badge-green')+'">'+(ovCount>0?'⚠ '+ovCount+' atrasada(s)':'Em dia')+'</span>'
+        +' <span class="badge badge-gray">'+p+'%</span></h3>'
         +'<div class="progress"><div class="progress-fill" style="width:'+p+'%"></div></div>';
       var objs=state.objectives.filter(function(o){return o.dream_id===d.id;});
-      if(objs.length){
-        h+='<table><tr><th>Objetivo</th><th>Prazo</th><th>Progresso</th><th>Tarefas</th></tr>';
-        objs.forEach(function(o){var tc=state.tasks.filter(function(t){return t.objective_id===o.id;}).length,dc=state.tasks.filter(function(t){return t.objective_id===o.id&&t.done;}).length,op=tc?Math.round(dc/tc*100):0;h+='<tr><td>'+o.name+'</td><td>'+(o.due_date||'—')+'</td><td>'+op+'%</td><td>'+dc+'/'+tc+'</td></tr>';});
-        h+='</table>';
-      }
+      objs.forEach(function(o){
+        var tc=state.tasks.filter(function(t){return t.objective_id===o.id;}).length;
+        var dc=state.tasks.filter(function(t){return t.objective_id===o.id&&t.done;}).length;
+        var op=tc?Math.round(dc/tc*100):0;
+        var oOv=state.tasks.filter(function(t){return t.objective_id===o.id&&!t.done&&isOverdue(t.due_date);}).length;
+        h+='<div style="margin:10px 0 4px 16px;font-weight:700;font-size:13px;color:#355F79">🎯 '+o.name
+          +' <span style="font-weight:400;color:#999">'+(o.due_date||'')+'</span>'
+          +' <span class="badge badge-gray">'+op+'%</span>'
+          +(oOv>0?' <span class="badge badge-red">⚠ '+oOv+' atrasada(s)</span>':'')
+          +'</div>';
+        // KRs
+        if(o.krs&&o.krs.length){
+          o.krs.forEach(function(kr){
+            var krTasks=state.tasks.filter(function(t){return t.kr_id===kr.id&&t.objective_id===o.id;});
+            var krDone=krTasks.filter(function(t){return t.done;}).length;
+            var krPct=krTasks.length?Math.round(krDone/krTasks.length*100):0;
+            h+='<div style="margin:6px 0 4px 32px;font-size:12px;color:#666">⬡ '+kr.name+' <span class="badge badge-gray">'+krPct+'%</span></div>';
+            krTasks.forEach(function(t){
+              var ov=!t.done&&isOverdue(t.due_date);
+              h+='<div style="margin:3px 0 3px 48px;font-size:12px;color:'+(t.done?'#999':ov?'#C0392B':'#333')+'">'
+                +(t.done?'✓ ':ov?'⚠ ':'○ ')+t.name
+                +(t.due_date?' <span style="color:#999">('+t.due_date+(t.time_start?' '+t.time_start:'')+')</span>':'')
+                +'</div>';
+            });
+          });
+        }
+        // Tarefas sem KR
+        var tasksSemKr=state.tasks.filter(function(t){return t.objective_id===o.id&&!t.kr_id;});
+        tasksSemKr.forEach(function(t){
+          var ov=!t.done&&isOverdue(t.due_date);
+          h+='<div style="margin:3px 0 3px 32px;font-size:12px;color:'+(t.done?'#999':ov?'#C0392B':'#333')+'">'
+            +(t.done?'✓ ':ov?'⚠ ':'○ ')+t.name
+            +(t.due_date?' <span style="color:#999">('+t.due_date+')</span>':'')
+            +'</div>';
+        });
+      });
+      h+='<hr style="border:none;border-top:1px solid #eee;margin:16px 0">';
     });
   }
   if(secRot){
     var dk2=fmtDate(now);
-    h+='<h2>🔄 Rotinas</h2><table><tr><th>Rotina</th><th>Frequência</th><th>Categoria</th><th>Hoje</th></tr>';
-    state.routines.forEach(function(r){var done=r.checks&&r.checks[dk2]===true,missed=r.checks&&r.checks[dk2]===false;h+='<tr><td>'+r.name+'</td><td>'+(r.freq||'—')+'</td><td>'+(r.category||'—')+'</td><td>'+(done?'<span class="badge badge-green">✓ Feita</span>':missed?'<span class="badge badge-red">✗ Perdida</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';});
+    var dias=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    // gera os 7 dias da semana atual
+    var semana=[];var ini=new Date(now);ini.setDate(now.getDate()-now.getDay());
+    for(var di=0;di<7;di++){var dd=new Date(ini);dd.setDate(ini.getDate()+di);semana.push(dd);}
+    h+='<h2>🔄 Rotinas</h2>';
+    h+='<table><tr><th>Rotina</th><th>Frequência</th><th>Hoje</th>';
+    semana.forEach(function(d){h+='<th style="text-align:center;min-width:30px">'+dias[d.getDay()]+'<br><span style="font-size:10px">'+d.getDate()+'</span></th>';});
+    h+='</tr>';
+    state.routines.forEach(function(r){
+      var done=r.checks&&r.checks[dk2]===true,missed=r.checks&&r.checks[dk2]===false;
+      var freqLabel={daily:'Diária',weekdays:'Seg-Sex',weekly:'Semanal (Sex)',monthly:'Mensal (últ. Sex)',custom_day:'Específica'}[r.frequency]||r.frequency;
+      h+='<tr><td>'+r.name+'</td><td>'+freqLabel+'</td>';
+      h+='<td>'+(done?'<span class="badge badge-green">✓</span>':missed?'<span class="badge badge-red">✗</span>':'<span class="badge badge-gray">—</span>')+'</td>';
+      semana.forEach(function(d){
+        var dKey=fmtDate(d);
+        var val=r.checks&&r.checks[dKey];
+        var bg=val===true?'background:#2E7D52;color:#fff':val===false?'background:#C0392B;color:#fff':'background:#eee;color:#999';
+        h+='<td style="text-align:center"><span style="display:inline-block;width:22px;height:22px;border-radius:50%;font-size:11px;line-height:22px;'+bg+'">'+(val===true?'✓':val===false?'✗':'')+'</span></td>';
+      });
+      h+='</tr>';
+    });
     h+='</table>';
   }
   if(secAfaz){
@@ -893,27 +946,64 @@ function gerarRelatorio(){
     h+='</table>';
   }
   if(secAgenda){
-    var agTasks=state.tasks.filter(function(t){return t.objective_id&&inPeriod(t.due_date);});
+    // Todas as tarefas com prazo no período (projetos + afazeres)
+    var agTasks=state.tasks.filter(function(t){return inPeriod(t.due_date);});
     h+='<h2>📅 Agenda — Tarefas do Período</h2>';
     if(!agTasks.length){h+='<p style="color:#999">Nenhuma tarefa com prazo neste período.</p>';}
     else{
-      h+='<table><tr><th>Tarefa</th><th>Projeto › Objetivo</th><th>Prazo</th><th>Início</th><th>Fim</th><th>Status</th></tr>';
+      h+='<table><tr><th>Data</th><th>Tarefa</th><th>Projeto › Objetivo</th><th>Início</th><th>Fim</th><th>Status</th></tr>';
       agTasks.sort(function(a,b){return(a.due_date||'').localeCompare(b.due_date||'');});
-      agTasks.forEach(function(t){var obj=state.objectives.find(function(o){return o.id===t.objective_id;}),dream=obj?state.dreams.find(function(d){return d.id===obj.dream_id;}):null,ov=!t.done&&isOverdue(t.due_date);h+='<tr><td class="'+(t.done?'done':ov?'overdue':'')+'">'+(ov?'⚠ ':'')+t.name+'</td><td>'+(dream?dream.name+' › ':'')+''+(obj?obj.name:'—')+'</td><td>'+(t.due_date||'—')+'</td><td>'+(t.time_start||'—')+'</td><td>'+(t.time_end||'—')+'</td><td>'+(t.done?'<span class="badge badge-green">✓</span>':ov?'<span class="badge badge-red">Atrasado</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';});
+      agTasks.forEach(function(t){
+        var obj=t.objective_id?state.objectives.find(function(o){return o.id===t.objective_id;}):null;
+        var dream=obj?state.dreams.find(function(d){return d.id===obj.dream_id;}):null;
+        var ov=!t.done&&isOverdue(t.due_date);
+        h+='<tr><td>'+(t.due_date||'—')+'</td>';
+        h+='<td class="'+(t.done?'done':ov?'overdue':'')+'">'+(ov?'⚠ ':t.done?'✓ ':'')+t.name+'</td>';
+        h+='<td>'+(dream?dream.name+' › ':'')+''+(obj?obj.name:'Afazer')+'</td>';
+        h+='<td>'+(t.time_start||t.time||'—')+'</td><td>'+(t.time_end||'—')+'</td>';
+        h+='<td>'+(t.done?'<span class="badge badge-green">✓</span>':ov?'<span class="badge badge-red">Atrasado</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';
+      });
+      h+='</table>';
+    }
+    // Objetivos e projetos com prazo no período
+    var objPeriod=state.objectives.filter(function(o){return inPeriod(o.due_date);});
+    if(objPeriod.length){
+      h+='<h3 style="margin-top:16px">Objetivos com prazo no período</h3>';
+      h+='<table><tr><th>Objetivo</th><th>Projeto</th><th>Prazo</th><th>Progresso</th></tr>';
+      objPeriod.forEach(function(o){
+        var d=state.dreams.find(function(dr){return dr.id===o.dream_id;});
+        var tc=state.tasks.filter(function(t){return t.objective_id===o.id;}).length;
+        var dc=state.tasks.filter(function(t){return t.objective_id===o.id&&t.done;}).length;
+        h+='<tr><td>'+o.name+'</td><td>'+(d?d.name:'—')+'</td><td>'+o.due_date+'</td><td>'+Math.round(dc/(tc||1)*100)+'%</td></tr>';
+      });
       h+='</table>';
     }
   }
   if(secMatriz){
-    var quads=[{label:'🔥 Urgente & Importante',u:1,i:1},{label:'🎯 Importante — Planeje',u:0,i:1},{label:'⚡ Urgente — Esteja Atento',u:1,i:0},{label:'🌿 Pouco Relevante Agora',u:0,i:0}];
+    var quads=[
+      {label:'🔥 Urgente & Importante — Foco Total',u:1,i:1},
+      {label:'🎯 Importante — Planeje',u:0,i:1},
+      {label:'⚡ Urgente — Esteja Atento',u:1,i:0},
+      {label:'🌿 Pouco Relevante Agora',u:0,i:0}
+    ];
     h+='<h2>🗂 Matriz Foco</h2>';
     quads.forEach(function(q){
       var items=state.tasks.filter(function(t){return !t.done&&t.urg===q.u&&t.imp===q.i;});
       var rots=state.routines.filter(function(r){return r.urg===q.u&&r.imp===q.i;});
-      if(!items.length&&!rots.length)return;
-      h+='<h3>'+q.label+'</h3><table><tr><th>Item</th><th>Tipo</th><th>Prazo/Frequência</th></tr>';
-      items.forEach(function(t){h+='<tr><td>'+(isOverdue(t.due_date)?'⚠ ':'')+t.name+'</td><td>Tarefa</td><td>'+(t.due_date||'—')+'</td></tr>';});
-      rots.forEach(function(r){h+='<tr><td>'+r.name+'</td><td>Rotina</td><td>'+(r.freq||'—')+'</td></tr>';});
-      h+='</table>';
+      h+='<h3>'+q.label+'</h3>';
+      if(!items.length&&!rots.length){
+        h+='<p style="color:#999;font-size:12px;margin-left:16px">Nenhum item neste quadrante.</p>';
+      } else {
+        h+='<table><tr><th>Item</th><th>Tipo</th><th>Prazo/Frequência</th><th>Status</th></tr>';
+        items.forEach(function(t){
+          var ov=isOverdue(t.due_date);
+          h+='<tr><td class="'+(ov?'overdue':'')+'">'+(ov?'⚠ ':'')+t.name+'</td><td>Tarefa</td><td>'+(t.due_date||'—')+'</td><td>'+(ov?'<span class="badge badge-red">Atrasado</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';
+        });
+        rots.forEach(function(r){
+          h+='<tr><td>'+r.name+'</td><td>Rotina</td><td>'+(r.frequency||'—')+'</td><td><span class="badge badge-gray">Ativa</span></td></tr>';
+        });
+        h+='</table>';
+      }
     });
   }
   h+='<div style="margin-top:40px;padding-top:16px;border-top:1px solid #eee;color:#999;font-size:11px;text-align:center">Good Day · Organize. Realize. Celebre. · '+now.toLocaleDateString('pt-BR')+'</div></body></html>';
