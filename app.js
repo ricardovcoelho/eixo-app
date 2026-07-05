@@ -94,6 +94,7 @@ function wireAuth() {
     document.getElementById('btn-login').click();
   });
   document.getElementById('btn-logout').addEventListener('click', () => { if (confirm('Sair do Good Day?')) logout(); });
+  document.getElementById('nav-relatorio').addEventListener('click', () => openRelatorio());
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -806,6 +807,153 @@ function getEventsForDate(dateStr){
   events.sort(function(a,b){if(a.type==='task'&&b.type==='routine')return -1;if(a.type==='routine'&&b.type==='task')return 1;if(a.time&&b.time)return a.time.localeCompare(b.time);if(a.time&&!b.time)return -1;if(!a.time&&b.time)return 1;return 0;});
   return events;
 }
+
+// ══ RELATÓRIO ══════════════════════════════════════════════════════════════
+function openRelatorio(){
+  var existing=document.getElementById('modal-relatorio');
+  if(existing)existing.remove();
+  var m=document.createElement('div');
+  m.id='modal-relatorio';
+  m.className='overlay';
+  m.style.cssText='display:flex;z-index:9000';
+  m.innerHTML='<div class="modal" style="max-width:480px;width:100%">'
+    +'<button class="modal-close" onclick="document.getElementById(\'modal-relatorio\').remove()">×</button>'
+    +'<h3 style="margin-bottom:20px">📄 Gerar Relatório</h3>'
+    +'<div class="fg"><label>Período</label><select id="rel-periodo">'
+    +'<option value="mes" selected>Este mês</option>'
+    +'<option value="semana">Esta semana</option>'
+    +'<option value="hoje">Hoje</option>'
+    +'<option value="tudo">Tudo (completo)</option>'
+    +'</select></div>'
+    +'<div class="fg"><label style="margin-bottom:10px;display:block">Seções</label>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-dashboard" checked> Dashboard</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-projetos" checked> Projetos</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-rotinas" checked> Rotinas</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-afazeres" checked> Afazeres</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-agenda" checked> Agenda</label>'
+    +'<label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer"><input type="checkbox" id="rel-matriz" checked> Matriz Foco</label>'
+    +'</div></div>'
+    +'<div class="modal-footer">'
+    +'<button class="btn" onclick="document.getElementById(\'modal-relatorio\').remove()">Cancelar</button>'
+    +'<button class="btn btn-accent" onclick="gerarRelatorio()">🖨 Imprimir / Salvar PDF</button>'
+    +'</div></div>';
+  document.body.appendChild(m);
+}
+
+function gerarRelatorio(){
+  var periodo=document.getElementById('rel-periodo').value;
+  var secDash=document.getElementById('rel-dashboard').checked;
+  var secProj=document.getElementById('rel-projetos').checked;
+  var secRot=document.getElementById('rel-rotinas').checked;
+  var secAfaz=document.getElementById('rel-afazeres').checked;
+  var secAgenda=document.getElementById('rel-agenda').checked;
+  var secMatriz=document.getElementById('rel-matriz').checked;
+  var now=new Date();
+  var periodoLabel={mes:'Este mês ('+now.toLocaleString('pt-BR',{month:'long',year:'numeric'})+')',semana:'Esta semana',hoje:'Hoje ('+now.toLocaleDateString('pt-BR')+')',tudo:'Completo'}[periodo];
+  var dtIni=null,dtFim=new Date();dtFim.setHours(23,59,59,999);
+  if(periodo==='hoje'){dtIni=new Date();dtIni.setHours(0,0,0,0);}
+  else if(periodo==='semana'){dtIni=new Date();dtIni.setDate(now.getDate()-now.getDay()+1);dtIni.setHours(0,0,0,0);}
+  else if(periodo==='mes'){dtIni=new Date(now.getFullYear(),now.getMonth(),1);}
+  function inPeriod(d){if(!d||!dtIni)return true;var dt=new Date(d+'T00:00:00');return dt>=dtIni&&dt<=dtFim;}
+  var nome=currentUser&&currentUser.name?currentUser.name:'Usuário';
+  var h='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Good Day</title>'
+    +'<style>body{font-family:Arial,sans-serif;color:#1B1B3A;max-width:900px;margin:0 auto;padding:32px;font-size:13px}'
+    +'h1{color:#1B1B3A;font-size:24px;margin-bottom:4px}h2{color:#C65D3B;font-size:16px;margin:28px 0 12px;border-bottom:2px solid #C65D3B;padding-bottom:6px}'
+    +'h3{font-size:14px;color:#355F79;margin:16px 0 8px}'
+    +'.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1B1B3A}'
+    +'.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;margin-right:4px}'
+    +'.badge-red{background:#fde8e5;color:#C0392B}.badge-green{background:#e5f5ed;color:#2E7D52}.badge-gray{background:#f0f0f0;color:#666}'
+    +'.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}'
+    +'.metric-card{border:1px solid #eee;border-radius:8px;padding:12px;text-align:center}'
+    +'.metric-val{font-size:28px;font-weight:800;color:#1B1B3A}.metric-lbl{font-size:10px;color:#999;text-transform:uppercase;letter-spacing:1px}'
+    +'.progress{height:6px;background:#eee;border-radius:3px;margin:6px 0}'
+    +'.progress-fill{height:100%;border-radius:3px;background:#C65D3B}'
+    +'table{width:100%;border-collapse:collapse;margin-bottom:12px}'
+    +'th{background:#1B1B3A;color:#fff;padding:8px 10px;text-align:left;font-size:12px}'
+    +'td{padding:7px 10px;border-bottom:1px solid #eee;font-size:12px}'
+    +'tr:nth-child(even)td{background:#f9f9f9}'
+    +'.done{text-decoration:line-through;color:#999}.overdue{color:#C0392B;font-weight:600}'
+    +'@media print{body{padding:16px}}</style></head><body>';
+  h+='<div class="header"><div><h1>📊 Relatório Good Day</h1>'
+    +'<div style="color:#666;font-size:12px">'+nome+' · Gerado em '+now.toLocaleDateString('pt-BR')+' às '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div></div>'
+    +'<div style="text-align:right"><div style="font-weight:700;color:#C65D3B">'+periodoLabel+'</div></div></div>';
+  if(secDash){
+    var taskDone=state.tasks.filter(function(t){return t.done;}).length;
+    var taskTotal=state.tasks.length;
+    var taskOv=state.tasks.filter(function(t){return !t.done&&isOverdue(t.due_date);}).length;
+    var dk=fmtDate(now);
+    var rotDone=state.routines.filter(function(r){return r.checks&&r.checks[dk]===true;}).length;
+    h+='<h2>📈 Dashboard</h2><div class="metric-grid">'
+      +'<div class="metric-card"><div class="metric-val">'+state.dreams.length+'</div><div class="metric-lbl">Projetos</div></div>'
+      +'<div class="metric-card"><div class="metric-val">'+taskDone+'/'+taskTotal+'</div><div class="metric-lbl">Tarefas feitas</div></div>'
+      +'<div class="metric-card"><div class="metric-val" style="color:#C0392B">'+taskOv+'</div><div class="metric-lbl">Em atraso</div></div>'
+      +'<div class="metric-card"><div class="metric-val">'+rotDone+'/'+state.routines.length+'</div><div class="metric-lbl">Rotinas hoje</div></div>'
+      +'</div>';
+  }
+  if(secProj){
+    h+='<h2>📁 Projetos</h2>';
+    state.dreams.forEach(function(d){
+      var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
+      var p=dPct(d.id);
+      var ovCount=state.tasks.filter(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);}).length;
+      h+='<h3>'+d.name+' <span class="badge '+(ovCount>0?'badge-red':'badge-green')+'">'+(ovCount>0?'⚠ '+ovCount+' atrasada(s)':'Em dia')+'</span> <span class="badge badge-gray">'+p+'%</span></h3>'
+        +'<div class="progress"><div class="progress-fill" style="width:'+p+'%"></div></div>';
+      var objs=state.objectives.filter(function(o){return o.dream_id===d.id;});
+      if(objs.length){
+        h+='<table><tr><th>Objetivo</th><th>Prazo</th><th>Progresso</th><th>Tarefas</th></tr>';
+        objs.forEach(function(o){var tc=state.tasks.filter(function(t){return t.objective_id===o.id;}).length,dc=state.tasks.filter(function(t){return t.objective_id===o.id&&t.done;}).length,op=tc?Math.round(dc/tc*100):0;h+='<tr><td>'+o.name+'</td><td>'+(o.due_date||'—')+'</td><td>'+op+'%</td><td>'+dc+'/'+tc+'</td></tr>';});
+        h+='</table>';
+      }
+    });
+  }
+  if(secRot){
+    var dk2=fmtDate(now);
+    h+='<h2>🔄 Rotinas</h2><table><tr><th>Rotina</th><th>Frequência</th><th>Categoria</th><th>Hoje</th></tr>';
+    state.routines.forEach(function(r){var done=r.checks&&r.checks[dk2]===true,missed=r.checks&&r.checks[dk2]===false;h+='<tr><td>'+r.name+'</td><td>'+(r.freq||'—')+'</td><td>'+(r.category||'—')+'</td><td>'+(done?'<span class="badge badge-green">✓ Feita</span>':missed?'<span class="badge badge-red">✗ Perdida</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';});
+    h+='</table>';
+  }
+  if(secAfaz){
+    var afazeres=state.tasks.filter(function(t){return !t.objective_id;});
+    var afazPeriod=afazeres.filter(function(t){return inPeriod(t.due_date);});
+    if(!afazPeriod.length)afazPeriod=afazeres;
+    h+='<h2>⚡ Afazeres</h2><table><tr><th>Descrição</th><th>Prazo</th><th>Horário</th><th>Status</th></tr>';
+    afazPeriod.forEach(function(t){var ov=!t.done&&isOverdue(t.due_date);h+='<tr><td class="'+(t.done?'done':ov?'overdue':'')+'">'+(ov?'⚠ ':'')+t.name+'</td><td>'+(t.due_date||'—')+'</td><td>'+(t.time||'—')+'</td><td>'+(t.done?'<span class="badge badge-green">✓</span>':ov?'<span class="badge badge-red">Atrasado</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';});
+    h+='</table>';
+  }
+  if(secAgenda){
+    var agTasks=state.tasks.filter(function(t){return t.objective_id&&inPeriod(t.due_date);});
+    h+='<h2>📅 Agenda — Tarefas do Período</h2>';
+    if(!agTasks.length){h+='<p style="color:#999">Nenhuma tarefa com prazo neste período.</p>';}
+    else{
+      h+='<table><tr><th>Tarefa</th><th>Projeto › Objetivo</th><th>Prazo</th><th>Início</th><th>Fim</th><th>Status</th></tr>';
+      agTasks.sort(function(a,b){return(a.due_date||'').localeCompare(b.due_date||'');});
+      agTasks.forEach(function(t){var obj=state.objectives.find(function(o){return o.id===t.objective_id;}),dream=obj?state.dreams.find(function(d){return d.id===obj.dream_id;}):null,ov=!t.done&&isOverdue(t.due_date);h+='<tr><td class="'+(t.done?'done':ov?'overdue':'')+'">'+(ov?'⚠ ':'')+t.name+'</td><td>'+(dream?dream.name+' › ':'')+''+(obj?obj.name:'—')+'</td><td>'+(t.due_date||'—')+'</td><td>'+(t.time_start||'—')+'</td><td>'+(t.time_end||'—')+'</td><td>'+(t.done?'<span class="badge badge-green">✓</span>':ov?'<span class="badge badge-red">Atrasado</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';});
+      h+='</table>';
+    }
+  }
+  if(secMatriz){
+    var quads=[{label:'🔥 Urgente & Importante',u:1,i:1},{label:'🎯 Importante — Planeje',u:0,i:1},{label:'⚡ Urgente — Esteja Atento',u:1,i:0},{label:'🌿 Pouco Relevante Agora',u:0,i:0}];
+    h+='<h2>🗂 Matriz Foco</h2>';
+    quads.forEach(function(q){
+      var items=state.tasks.filter(function(t){return !t.done&&t.urg===q.u&&t.imp===q.i;});
+      var rots=state.routines.filter(function(r){return r.urg===q.u&&r.imp===q.i;});
+      if(!items.length&&!rots.length)return;
+      h+='<h3>'+q.label+'</h3><table><tr><th>Item</th><th>Tipo</th><th>Prazo/Frequência</th></tr>';
+      items.forEach(function(t){h+='<tr><td>'+(isOverdue(t.due_date)?'⚠ ':'')+t.name+'</td><td>Tarefa</td><td>'+(t.due_date||'—')+'</td></tr>';});
+      rots.forEach(function(r){h+='<tr><td>'+r.name+'</td><td>Rotina</td><td>'+(r.freq||'—')+'</td></tr>';});
+      h+='</table>';
+    });
+  }
+  h+='<div style="margin-top:40px;padding-top:16px;border-top:1px solid #eee;color:#999;font-size:11px;text-align:center">Good Day · Organize. Realize. Celebre. · '+now.toLocaleDateString('pt-BR')+'</div></body></html>';
+  var win=window.open('','_blank');
+  win.document.write(h);
+  win.document.close();
+  win.focus();
+  setTimeout(function(){win.print();},800);
+  document.getElementById('modal-relatorio').remove();
+}
+// ══════════════════════════════════════════════════════════════════════════
 
 function renderAgenda(){
   var el=document.getElementById('agenda-content'),d=agendaDate,title='';
