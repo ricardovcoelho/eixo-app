@@ -855,11 +855,13 @@ function gerarRelatorio(){
     var taskOv=state.tasks.filter(function(t){return !t.done&&isOverdue(t.due_date);}).length;
     var dk=fmtDate(now);
     var rotDone=state.routines.filter(function(r){return r.checks&&r.checks[dk]===true;}).length;
-    h+='<h2>📈 Dashboard</h2><div class="metric-grid">'
-      +'<div class="metric-card"><div class="metric-val">'+state.dreams.length+'</div><div class="metric-lbl">Projetos</div></div>'
-      +'<div class="metric-card"><div class="metric-val">'+taskDone+'/'+taskTotal+'</div><div class="metric-lbl">Tarefas feitas</div></div>'
-      +'<div class="metric-card"><div class="metric-val" style="color:#C0392B">'+taskOv+'</div><div class="metric-lbl">Em atraso</div></div>'
-      +'<div class="metric-card"><div class="metric-val">'+rotDone+'/'+state.routines.length+'</div><div class="metric-lbl">Rotinas hoje</div></div>'
+    var projAvg=state.dreams.length?Math.round(state.dreams.reduce(function(a,d){return a+dPct(d.id);},0)/state.dreams.length):0;
+    h+='<h2>📈 Dashboard</h2>'
+      +'<div class="metric-grid">'
+      +'<div class="metric-card"><div class="metric-val">'+state.dreams.length+'</div><div class="metric-lbl">Projetos</div><div style="font-size:11px;color:#C65D3B;margin-top:4px">'+projAvg+'% concluído</div></div>'
+      +'<div class="metric-card"><div class="metric-val">'+taskDone+'<span style="font-size:16px;color:#999">/'+taskTotal+'</span></div><div class="metric-lbl">Tarefas feitas</div></div>'
+      +'<div class="metric-card"><div class="metric-val" style="color:#C0392B">'+taskOv+'</div><div class="metric-lbl">Em atraso</div><div style="font-size:11px;color:#C0392B;margin-top:4px">'+Math.round(taskOv/(taskTotal||1)*100)+'% do total</div></div>'
+      +'<div class="metric-card"><div class="metric-val">'+rotDone+'<span style="font-size:16px;color:#999">/'+state.routines.length+'</span></div><div class="metric-lbl">Rotinas hoje</div></div>'
       +'</div>';
   }
   if(secProj){
@@ -980,27 +982,40 @@ function gerarRelatorio(){
     }
   }
   if(secMatriz){
-    var quads=[
-      {label:'🔥 Urgente & Importante — Foco Total',u:1,i:1},
-      {label:'🎯 Importante — Planeje',u:0,i:1},
-      {label:'⚡ Urgente — Esteja Atento',u:1,i:0},
-      {label:'🌿 Pouco Relevante Agora',u:0,i:0}
-    ];
     h+='<h2>🗂 Matriz Foco</h2>';
-    quads.forEach(function(q){
-      var items=state.tasks.filter(function(t){return !t.done&&t.urg===q.u&&t.imp===q.i;});
-      var rots=state.routines.filter(function(r){return r.urg===q.u&&r.imp===q.i;});
+    var todStr2=fmtDate(now);
+    var tom2=new Date(now);tom2.setDate(tom2.getDate()+1);var tomStr2=fmtDate(tom2);
+    function mUrg(t){return !t.done&&(isOverdue(t.due_date)||t.due_date===todStr2||t.due_date===tomStr2);}
+    function mImp(t){return !!t.objective_id;}
+    var dk3=fmtDate(now);
+    function rUrg(r){return !(r.checks&&r.checks[dk3]===true);}
+    function rImp(r){return r.category==='gestao'||r.category==='vendas';}
+    var quadsDyn=[
+      {label:'🔥 Urgente & Importante — Foco Total',fu:true,fi:true},
+      {label:'🎯 Importante — Planeje',fu:false,fi:true},
+      {label:'⚡ Urgente — Esteja Atento',fu:true,fi:false},
+      {label:'🌿 Pouco Relevante Agora',fu:false,fi:false}
+    ];
+    quadsDyn.forEach(function(q){
+      var items=state.tasks.filter(function(t){return !t.done&&mUrg(t)===q.fu&&mImp(t)===q.fi;});
+      var rots=state.routines.filter(function(r){return rUrg(r)===q.fu&&rImp(r)===q.fi;});
       h+='<h3>'+q.label+'</h3>';
       if(!items.length&&!rots.length){
         h+='<p style="color:#999;font-size:12px;margin-left:16px">Nenhum item neste quadrante.</p>';
       } else {
-        h+='<table><tr><th>Item</th><th>Tipo</th><th>Prazo/Frequência</th><th>Status</th></tr>';
+        h+='<table><tr><th>Item</th><th>Tipo</th><th>Prazo</th><th>Status</th></tr>';
         items.forEach(function(t){
           var ov=isOverdue(t.due_date);
-          h+='<tr><td class="'+(ov?'overdue':'')+'">'+(ov?'⚠ ':'')+t.name+'</td><td>Tarefa</td><td>'+(t.due_date||'—')+'</td><td>'+(ov?'<span class="badge badge-red">Atrasado</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';
+          var obj=t.objective_id?state.objectives.find(function(o){return o.id===t.objective_id;}):null;
+          h+='<tr><td class="'+(ov?'overdue':'')+'">'+(ov?'⚠ ':'')+t.name+'</td>'
+            +'<td>Tarefa'+(obj?' · '+obj.name:'')+'</td>'
+            +'<td>'+(t.due_date||'—')+'</td>'
+            +'<td>'+(ov?'<span class="badge badge-red">Atrasado</span>':t.due_date===todStr2?'<span style="background:#fff3cd;color:#856404;padding:2px 8px;border-radius:99px;font-size:11px">Hoje</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';
         });
         rots.forEach(function(r){
-          h+='<tr><td>'+r.name+'</td><td>Rotina</td><td>'+(r.frequency||'—')+'</td><td><span class="badge badge-gray">Ativa</span></td></tr>';
+          var done=r.checks&&r.checks[dk3]===true;
+          h+='<tr><td>'+r.name+'</td><td>Rotina</td><td>'+(r.frequency||'—')+'</td>'
+            +'<td>'+(done?'<span class="badge badge-green">✓ Feita</span>':'<span class="badge badge-gray">Pendente</span>')+'</td></tr>';
         });
         h+='</table>';
       }
