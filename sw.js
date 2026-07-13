@@ -1,14 +1,39 @@
-// sw.js — Service Worker do Good Day: recebe pushes e mostra notificações,
-// mesmo com o app fechado ou o navegador minimizado.
+// sw.js — Service Worker do Good Day
+// Mantém o cache original do app (para carregamento rápido/offline) e
+// adiciona o recebimento de notificações push, mesmo com o app fechado.
 
-self.addEventListener('install', function (event) {
+const CACHE = 'goodday-v5';
+const ASSETS = ['/', '/index.html', '/app.js', '/style.css', '/manifest.json'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {})
+  );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', function (event) {
-  event.waitUntil(self.clients.claim());
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
 });
 
+self.addEventListener('fetch', e => {
+  if (!e.request.url.startsWith('http')) return;
+  if (e.request.url.includes('/api/')) return;
+  e.respondWith(
+    fetch(e.request).then(r => {
+      var rc = r.clone();
+      caches.open(CACHE).then(c => c.put(e.request, rc)).catch(() => {});
+      return r;
+    }).catch(() => caches.match(e.request))
+  );
+});
+
+// ─── NOTIFICAÇÕES PUSH ───────────────────────────────────────────────────────
 self.addEventListener('push', function (event) {
   console.log('[Good Day SW] evento push recebido. Tem dados?', !!(event && event.data));
   let data = { title: 'Good Day', body: 'Você tem um lembrete.' };
