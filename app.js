@@ -178,7 +178,7 @@ function wireAuth() {
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
-let state = { dreams: [], objectives: [], tasks: [], routines: [], catLabels: {gestao:'GESTÃO',vendas:'VENDAS',pessoal:'PESSOAL',desenv:'DESENVOLVIMENTO'}, customCats: [] };
+let state = { dreams: [], objectives: [], tasks: [], deletedTasks: [], routines: [], catLabels: {gestao:'GESTÃO',vendas:'VENDAS',pessoal:'PESSOAL',desenv:'DESENVOLVIMENTO'}, customCats: [] };
 let editObjId=null, editDreamId=null, editRoutineId=null, editTaskId=null, linkTaskId=null, taskFilter='all', activeDream=null, editCatKey=null;
 let objsOpenObj=null, objsOpenKr=null;
 let editKrObjId=null, editKrId=null;
@@ -195,10 +195,14 @@ async function loadAll() {
   setSyncStatus('syncing');
   try {
     const [dreams, objectives, krs, tasks, routines] = await Promise.all([api('GET','dreams'),api('GET','objectives'),api('GET','krs'),api('GET','tasks'),api('GET','routines')]);
-    state.dreams = dreams||[]; state.tasks = tasks||[]; state.routines = routines||[];
+    state.dreams = dreams||[]; state.routines = routines||[];
+    const allTasks = tasks||[];
+    state.tasks = allTasks.filter(t => !t.deleted_at);
+    state.deletedTasks = allTasks.filter(t => !!t.deleted_at);
     state.objectives = (objectives||[]).map(o => { o.krs = (krs||[]).filter(k => k.objective_id===o.id); return o; });
     try { const cl = localStorage.getItem('eixo_catlabels_'+currentUser?.id); if (cl) { const d = JSON.parse(cl); state.catLabels = d.labels||d; state.customCats = d.custom||[]; } } catch {}
     setSyncStatus('ok');
+    purgeOldTrash();
   } catch(e) { setSyncStatus('error'); console.error('Load error:',e); }
 }
 function saveCatLabels() { try { localStorage.setItem('eixo_catlabels_'+currentUser?.id, JSON.stringify({labels:state.catLabels,custom:state.customCats||[]})); } catch {} }
@@ -232,6 +236,69 @@ async function toggleTask(id) {
   if(document.getElementById('page-objetivos').classList.contains('active'))renderObjs();
   if(document.getElementById('page-home').classList.contains('active'))renderHome();
   if(document.getElementById('page-cascata').classList.contains('active'))renderCascata();
+}
+
+// ─── EXCLUSÃO PROTEGIDA (lixeira + trava de tarefas de projeto) ──────────────
+// Tarefas ligadas a um projeto (objective_id preenchido) só podem ser excluídas
+// depois que o projeto estiver 100% concluído, e sempre com dupla confirmação.
+// Tarefas soltas (afazeres) vão para a lixeira e ficam recuperáveis por 30 dias.
+function taskProjectStatus(t){
+  if(!t.objective_id)return null; // não é tarefa de projeto
+  const obj=state.objectives.find(o=>o.id===t.objective_id);
+  if(!obj)return null;
+  return {dreamId:obj.dream_id, pct:dPct(obj.dream_id)};
+}
+
+async function requestDeleteTask(id, afterFn){
+  const t=state.tasks.find(x=>x.id===id); if(!t)return;
+  const proj=taskProjectStatus(t);
+  if(proj){
+    if(proj.pct<100){
+      alert('Essa tarefa está vinculada a um projeto ainda em andamento ('+proj.pct+'% concluído). Só é possível excluir tarefas de projetos depois que o projeto for 100% concluído.');
+      return;
+    }
+    if(!confirm('Esta tarefa pertence a um projeto já concluído. Confirma a exclusão?'))return;
+    if(!confirm('Tem certeza mesmo? Essa ação vai remover a tarefa do projeto concluído.'))return;
+  } else {
+    if(!confirm('Excluir?'))return;
+  }
+  await softDeleteTask(id);
+  if(afterFn)afterFn();
+}
+
+async function softDeleteTask(id){
+  const idx=state.tasks.findIndex(x=>x.id===id); if(idx===-1)return;
+  const t=state.tasks[idx];
+  const now=new Date().toISOString();
+  await sbUpdate('tasks',id,{deleted_at:now});
+  t.deleted_at=now;
+  state.tasks.splice(idx,1);
+  state.deletedTasks.push(t);
+}
+
+async function restoreTask(id){
+  const idx=state.deletedTasks.findIndex(x=>x.id===id); if(idx===-1)return;
+  const t=state.deletedTasks[idx];
+  await sbUpdate('tasks',id,{deleted_at:null});
+  t.deleted_at=null;
+  state.deletedTasks.splice(idx,1);
+  state.tasks.push(t);
+}
+
+async function purgeTaskForever(id){
+  await sbDelete('tasks',id);
+  state.deletedTasks=state.deletedTasks.filter(t=>t.id!==id);
+}
+
+function purgeOldTrash(){
+  const cutoff=Date.now()-30*24*60*60*1000;
+  const old=(state.deletedTasks||[]).filter(t=>t.deleted_at&&new Date(t.deleted_at).getTime()<cutoff);
+  old.forEach(t=>purgeTaskForever(t.id));
+}
+
+function daysLeftInTrash(deletedAt){
+  const ms=30*24*60*60*1000-(Date.now()-new Date(deletedAt).getTime());
+  return Math.max(0,Math.ceil(ms/(24*60*60*1000)));
 }
 
 // ─── NAV ─────────────────────────────────────────────────────────────────────
@@ -329,12 +396,11 @@ function checkWeeklyCleanup(){
 }
 
 async function performCleanupCompletedTasks(){
-  var done=state.tasks.filter(function(t){return t.done;});
+  // Só afazeres soltos (sem objective_id) — tarefas de projeto nunca são tocadas pela limpeza em massa.
+  var done=state.tasks.filter(function(t){return t.done&&!t.objective_id;});
   for(var i=0;i<done.length;i++){
-    await sbDelete('tasks',done[i].id);
+    await softDeleteTask(done[i].id);
   }
-  var doneIds=done.map(function(t){return t.id;});
-  state.tasks=state.tasks.filter(function(t){return doneIds.indexOf(t.id)===-1;});
 }
 
 async function performCleanupRoutineChecks(){
@@ -366,7 +432,7 @@ function getModalsHTML(){return `
 <div class="overlay" id="modal-new-group"><div class="modal"><button class="modal-close" data-close="modal-new-group">×</button><h3>Novo Grupo de Rotinas</h3><div class="fg"><label>Nome do grupo</label><input id="new-group-name" placeholder="Ex: Família, Saúde..."></div><div class="modal-footer"><button class="btn" data-close="modal-new-group">Cancelar</button><button class="btn btn-accent" id="btn-save-new-group">Criar</button></div></div></div>
 <div class="overlay" id="modal-kr-edit"><div class="modal" style="max-width:420px"><button class="modal-close" data-close="modal-kr-edit">×</button><h3>Editar Resultado-Chave</h3><div class="fg"><label>Nome</label><input id="kre-name"></div><div class="fg"><label>Prazo</label><input id="kre-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-kr-edit">Cancelar</button><button class="btn btn-accent" id="btn-save-kr-edit">Salvar</button></div></div></div>
 <div class="overlay" id="modal-reschedule"><div class="modal" style="max-width:380px"><button class="modal-close" data-close="modal-reschedule">×</button><h3 id="reschedule-title">Reagendar</h3><div style="font-size:13px;color:var(--text2);margin-bottom:16px" id="reschedule-name"></div><div class="fg"><label>Nova data</label><input id="reschedule-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-reschedule">Cancelar</button><button class="btn btn-accent" id="btn-save-reschedule">Reagendar</button></div></div></div>
-<div class="overlay" id="modal-weekly-cleanup"><div class="modal" style="max-width:420px"><h3>🧹 Nova semana!</h3><p style="font-size:13px;color:var(--text2);margin-bottom:16px">Quer limpar as tarefas/afazeres já concluídos e reiniciar os check-ins das rotinas da semana passada?</p><div class="modal-footer"><button class="btn" id="btn-weekly-cleanup-no">Não, manter</button><button class="btn btn-accent" id="btn-weekly-cleanup-yes">Sim, limpar</button></div></div></div>
+<div class="overlay" id="modal-weekly-cleanup"><div class="modal" style="max-width:420px"><h3>🧹 Nova semana!</h3><p style="font-size:13px;color:var(--text2);margin-bottom:16px">Quer mandar pra lixeira os afazeres já concluídos (tarefas de projetos não são afetadas) e reiniciar os check-ins das rotinas da semana passada?</p><div class="modal-footer"><button class="btn" id="btn-weekly-cleanup-no">Não, manter</button><button class="btn btn-accent" id="btn-weekly-cleanup-yes">Sim, limpar</button></div></div></div>
 <div class="glass-overlay" id="glass-overlay"><div class="glass-panel"><button class="glass-panel-close" id="glass-close"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div id="glass-content"></div></div></div>
 `;}
 
@@ -494,7 +560,7 @@ function openGlassTask(t){
   document.getElementById('glass-content').innerHTML=h;
   document.getElementById('glass-toggle-task').addEventListener('click',async()=>{await toggleTask(t.id);closeGlass();renderAgenda();});
   document.getElementById('glass-reschedule-task').addEventListener('click',async()=>{const nd=document.getElementById('glass-task-date').value;if(!nd)return;const tk=state.tasks.find(x=>x.id===t.id);if(tk){tk.due_date=nd;await sbUpdate('tasks',t.id,{due_date:nd});}closeGlass();renderAgenda();renderDash();});
-  document.getElementById('glass-delete-task').addEventListener('click',async()=>{if(!confirm('Excluir?'))return;await sbDelete('tasks',t.id);state.tasks=state.tasks.filter(x=>x.id!==t.id);closeGlass();renderAgenda();renderDash();});
+  document.getElementById('glass-delete-task').addEventListener('click',async()=>{await requestDeleteTask(t.id,()=>{closeGlass();renderAgenda();renderDash();});});
   openGlass();
 }
 function openGlassRoutine(r,dayKey){
@@ -819,7 +885,7 @@ function renderObjs(){
     renderObjs();
   });});
   el.querySelectorAll('.edt-task').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();openEditTask(parseInt(this.dataset.id));});});
-  el.querySelectorAll('.del-task-obj').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();if(!confirm('Excluir tarefa?'))return;await sbDelete('tasks',parseInt(b.dataset.id));state.tasks=state.tasks.filter(function(t){return t.id!==parseInt(b.dataset.id);});renderObjs();});});
+  el.querySelectorAll('.del-task-obj').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();await requestDeleteTask(parseInt(b.dataset.id),function(){renderObjs();});});});
 }
 
 // ─── RENDER TASKS ────────────────────────────────────────────────────────────
@@ -844,7 +910,7 @@ function renderTasks(){
   el.querySelectorAll('.check-box').forEach(function(b){b.addEventListener('click',function(){toggleTask(parseInt(this.dataset.task));});});
   el.querySelectorAll('.link-obj,.link-kr').forEach(function(b){b.addEventListener('click',function(){openLinkModal(parseInt(this.dataset.tid));});});
   el.querySelectorAll('.edt-task').forEach(function(b){b.addEventListener('click',function(){openEditTask(parseInt(this.dataset.id));});});
-  el.querySelectorAll('.del-task').forEach(function(b){b.addEventListener('click',async function(){await sbDelete('tasks',parseInt(b.dataset.id));state.tasks=state.tasks.filter(function(t){return t.id!==parseInt(b.dataset.id);});renderTasks();});});
+  el.querySelectorAll('.del-task').forEach(function(b){b.addEventListener('click',async function(){await requestDeleteTask(parseInt(b.dataset.id),function(){renderTasks();});});});
 }
 
 // ─── RENDER ROUTINES ─────────────────────────────────────────────────────────
@@ -921,7 +987,7 @@ function renderAcoes(){
   el.innerHTML=h;
   el.querySelectorAll('.check-box[data-task]').forEach(function(b){b.addEventListener('click',async function(){await toggleTask(parseInt(this.dataset.task));renderAcoes();});});
   el.querySelectorAll('.edt-acao').forEach(function(b){b.addEventListener('click',function(){openEditTask(parseInt(this.dataset.id));});});
-  el.querySelectorAll('.del-acao').forEach(function(b){b.addEventListener('click',async function(){if(!confirm('Excluir?'))return;await sbDelete('tasks',parseInt(b.dataset.id));state.tasks=state.tasks.filter(function(t){return t.id!==parseInt(b.dataset.id);});renderAcoes();});});
+  el.querySelectorAll('.del-acao').forEach(function(b){b.addEventListener('click',async function(){await requestDeleteTask(parseInt(b.dataset.id),function(){renderAcoes();});});});
 }
 
 // ─── AGENDA ──────────────────────────────────────────────────────────────────
@@ -2010,10 +2076,7 @@ function wireCascataAll(el){
   el.querySelectorAll('.cascata-del-task').forEach(function(b){
     b.addEventListener('click', async function(e){
       e.stopPropagation();
-      if(!confirm('Excluir esta tarefa?')) return;
-      await sbDelete('tasks', parseInt(this.dataset.id));
-      state.tasks=state.tasks.filter(function(t){return t.id!==parseInt(b.dataset.id);});
-      renderCascata();
+      await requestDeleteTask(parseInt(this.dataset.id), function(){ renderCascata(); });
     });
   });
 
@@ -2077,6 +2140,27 @@ async function renderPushCard(){
   };
 }
 
+// ══ LIXEIRA (itens excluídos, recuperáveis por 30 dias) ══
+function renderLixeira(){
+  var el=document.getElementById('lixeira-list');
+  if(!el)return;
+  var items=(state.deletedTasks||[]).slice().sort(function(a,b){return new Date(b.deleted_at)-new Date(a.deleted_at);});
+  if(!items.length){el.innerHTML='<div style="font-size:13px;color:var(--text3);font-style:italic">Lixeira vazia.</div>';return;}
+  var h='';
+  items.forEach(function(t){
+    var dl=daysLeftInTrash(t.deleted_at);
+    h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-size:13px;color:var(--text3);text-decoration:line-through">'+t.name+'</span><span style="font-size:11px;color:var(--text3)">'+dl+'d restantes</span><button class="btn btn-sm restore-task" data-id="'+t.id+'">Restaurar</button></div>';
+  });
+  el.innerHTML=h;
+  el.querySelectorAll('.restore-task').forEach(function(b){b.addEventListener('click',async function(){
+    await restoreTask(parseInt(b.dataset.id));
+    renderLixeira();
+    if(document.getElementById('page-acoes').classList.contains('active'))renderAcoes();
+    if(document.getElementById('page-tarefas').classList.contains('active'))renderTasks();
+    renderHome();
+  });});
+}
+
 // ══ PERFIL ══
 function renderPerfil(){
   var el=document.getElementById('perfil-content');
@@ -2099,8 +2183,13 @@ function renderPerfil(){
     </div>
     <div class="card" style="max-width:480px;margin-top:14px">
       <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">🧹 Limpeza</h2>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Apaga tarefas e afazeres já concluídos, na hora, sem esperar o aviso semanal.</p>
-      <button class="btn" id="btn-limpar-concluidas">Limpar tarefas concluídas</button>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Manda pra lixeira os afazeres já concluídos (tarefas vinculadas a projetos não são afetadas), na hora, sem esperar o aviso semanal.</p>
+      <button class="btn" id="btn-limpar-concluidas">Limpar afazeres concluídos</button>
+    </div>
+    <div class="card" style="max-width:480px;margin-top:14px">
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">🗑️ Lixeira</h2>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Itens excluídos ficam aqui por 30 dias antes de sumir de vez. Pode restaurar quando quiser.</p>
+      <div id="lixeira-list"></div>
     </div>
     <div class="card" style="max-width:480px;margin-top:14px">
       <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">Tutorial</h2>
@@ -2113,18 +2202,20 @@ function renderPerfil(){
   });
 
   document.getElementById('btn-limpar-concluidas').addEventListener('click', async function(){
-    var doneCount=state.tasks.filter(function(t){return t.done;}).length;
-    if(!doneCount){alert('Nenhuma tarefa concluída para limpar.');return;}
-    if(!confirm('Apagar '+doneCount+' tarefa(s)/afazer(es) concluído(s)? Essa ação não pode ser desfeita.'))return;
+    var doneCount=state.tasks.filter(function(t){return t.done&&!t.objective_id;}).length;
+    if(!doneCount){alert('Nenhum afazer concluído para limpar.');return;}
+    if(!confirm('Mandar '+doneCount+' afazer(es) concluído(s) para a lixeira?'))return;
     this.textContent='Limpando...';this.disabled=true;
     await performCleanupCompletedTasks();
-    this.textContent='Limpar tarefas concluídas';this.disabled=false;
-    alert('Pronto! Tarefas concluídas removidas.');
+    this.textContent='Limpar afazeres concluídos';this.disabled=false;
+    alert('Pronto! Movidos para a lixeira (recuperáveis por 30 dias).');
     if(document.getElementById('page-acoes').classList.contains('active'))renderAcoes();
     if(document.getElementById('page-tarefas').classList.contains('active'))renderTasks();
     renderHome();
+    renderLixeira();
   });
 
+  renderLixeira();
   renderPushCard();
 
   document.getElementById('btn-save-perfil').addEventListener('click', async function(){
