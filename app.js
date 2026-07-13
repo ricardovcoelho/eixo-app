@@ -296,6 +296,62 @@ async function initApp(){
   wireSaveHandlers();
   await loadAll();
   renderHome();
+  checkWeeklyCleanup();
+}
+
+// ─── LIMPEZA SEMANAL (tarefas concluídas + check-ins de rotina) ──────────────
+function weekStartStr(d){
+  var day=d.getDay(),ws=new Date(d);ws.setDate(d.getDate()-day);ws.setHours(0,0,0,0);
+  return ws.getFullYear()+'-'+String(ws.getMonth()+1).padStart(2,'0')+'-'+String(ws.getDate()).padStart(2,'0');
+}
+
+function checkWeeklyCleanup(){
+  if(!currentUser||!currentUser.id)return;
+  var key='goodday_week_cleanup_'+currentUser.id;
+  var curWeek=weekStartStr(new Date());
+  var lastSeen=localStorage.getItem(key);
+  if(lastSeen===curWeek)return; // já perguntamos essa semana
+  document.getElementById('btn-weekly-cleanup-yes').onclick=async function(){
+    localStorage.setItem(key,curWeek);
+    closeModal('modal-weekly-cleanup');
+    await performCleanupCompletedTasks();
+    await performCleanupRoutineChecks();
+    renderHome();
+    if(document.getElementById('page-acoes').classList.contains('active'))renderAcoes();
+    if(document.getElementById('page-tarefas').classList.contains('active'))renderTasks();
+    if(document.getElementById('page-rotinas').classList.contains('active'))renderRoutines();
+  };
+  document.getElementById('btn-weekly-cleanup-no').onclick=function(){
+    localStorage.setItem(key,curWeek);
+    closeModal('modal-weekly-cleanup');
+  };
+  openModal('modal-weekly-cleanup');
+}
+
+async function performCleanupCompletedTasks(){
+  var done=state.tasks.filter(function(t){return t.done;});
+  for(var i=0;i<done.length;i++){
+    await sbDelete('tasks',done[i].id);
+  }
+  var doneIds=done.map(function(t){return t.id;});
+  state.tasks=state.tasks.filter(function(t){return doneIds.indexOf(t.id)===-1;});
+}
+
+async function performCleanupRoutineChecks(){
+  for(var i=0;i<state.routines.length;i++){
+    var r=state.routines[i];
+    if(!r.checks)continue;
+    var newChecks={};
+    var changed=false;
+    Object.keys(r.checks).forEach(function(k){
+      if(/^day\d+-\d+-w\d$/.test(k)){changed=true;return;} // remove check-ins de dia-da-semana (a grade da semana atual)
+      newChecks[k]=r.checks[k];
+    });
+    if(changed){
+      r.checks=newChecks;
+      await sbUpdate('routines',r.id,{checks:newChecks});
+    }
+  }
 }
 
 // ─── MODALS HTML ─────────────────────────────────────────────────────────────
@@ -310,8 +366,10 @@ function getModalsHTML(){return `
 <div class="overlay" id="modal-new-group"><div class="modal"><button class="modal-close" data-close="modal-new-group">×</button><h3>Novo Grupo de Rotinas</h3><div class="fg"><label>Nome do grupo</label><input id="new-group-name" placeholder="Ex: Família, Saúde..."></div><div class="modal-footer"><button class="btn" data-close="modal-new-group">Cancelar</button><button class="btn btn-accent" id="btn-save-new-group">Criar</button></div></div></div>
 <div class="overlay" id="modal-kr-edit"><div class="modal" style="max-width:420px"><button class="modal-close" data-close="modal-kr-edit">×</button><h3>Editar Resultado-Chave</h3><div class="fg"><label>Nome</label><input id="kre-name"></div><div class="fg"><label>Prazo</label><input id="kre-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-kr-edit">Cancelar</button><button class="btn btn-accent" id="btn-save-kr-edit">Salvar</button></div></div></div>
 <div class="overlay" id="modal-reschedule"><div class="modal" style="max-width:380px"><button class="modal-close" data-close="modal-reschedule">×</button><h3 id="reschedule-title">Reagendar</h3><div style="font-size:13px;color:var(--text2);margin-bottom:16px" id="reschedule-name"></div><div class="fg"><label>Nova data</label><input id="reschedule-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-reschedule">Cancelar</button><button class="btn btn-accent" id="btn-save-reschedule">Reagendar</button></div></div></div>
+<div class="overlay" id="modal-weekly-cleanup"><div class="modal" style="max-width:420px"><h3>🧹 Nova semana!</h3><p style="font-size:13px;color:var(--text2);margin-bottom:16px">Quer limpar as tarefas/afazeres já concluídos e reiniciar os check-ins das rotinas da semana passada?</p><div class="modal-footer"><button class="btn" id="btn-weekly-cleanup-no">Não, manter</button><button class="btn btn-accent" id="btn-weekly-cleanup-yes">Sim, limpar</button></div></div></div>
 <div class="glass-overlay" id="glass-overlay"><div class="glass-panel"><button class="glass-panel-close" id="glass-close"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div id="glass-content"></div></div></div>
 `;}
+
 
 // ─── SAVE HANDLERS ───────────────────────────────────────────────────────────
 function wireSaveHandlers(){
@@ -768,7 +826,10 @@ function renderObjs(){
 function renderTasks(){
   var el=document.getElementById('task-list');
   var tasks=state.tasks.filter(function(t){if(taskFilter==='pending')return !t.done;if(taskFilter==='done')return t.done;return true;});
-  tasks.sort(function(a,b){if(!a.due_date&&!b.due_date)return 0;if(!a.due_date)return 1;if(!b.due_date)return -1;return a.due_date.localeCompare(b.due_date);});
+  tasks.sort(function(a,b){
+    if(a.done!==b.done)return a.done?1:-1; // pendentes sempre acima das concluídas
+    if(!a.due_date&&!b.due_date)return 0;if(!a.due_date)return 1;if(!b.due_date)return -1;return a.due_date.localeCompare(b.due_date);
+  });
   if(!tasks.length){el.innerHTML='<div style="color:var(--text3);padding:24px;text-align:center">Nenhuma tarefa.</div>';return;}
   var h='<div class="card">';
   tasks.forEach(function(t){
@@ -2037,6 +2098,11 @@ function renderPerfil(){
       <button class="btn btn-accent" id="btn-toggle-push">Carregando...</button>
     </div>
     <div class="card" style="max-width:480px;margin-top:14px">
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">🧹 Limpeza</h2>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Apaga tarefas e afazeres já concluídos, na hora, sem esperar o aviso semanal.</p>
+      <button class="btn" id="btn-limpar-concluidas">Limpar tarefas concluídas</button>
+    </div>
+    <div class="card" style="max-width:480px;margin-top:14px">
       <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">Tutorial</h2>
       <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Rever a introdução de como o Good Day funciona.</p>
       <button class="btn" id="btn-rever-onboarding">Rever tutorial</button>
@@ -2044,6 +2110,19 @@ function renderPerfil(){
 
   document.getElementById('btn-rever-onboarding').addEventListener('click', function(){
     window._reverOnboarding();
+  });
+
+  document.getElementById('btn-limpar-concluidas').addEventListener('click', async function(){
+    var doneCount=state.tasks.filter(function(t){return t.done;}).length;
+    if(!doneCount){alert('Nenhuma tarefa concluída para limpar.');return;}
+    if(!confirm('Apagar '+doneCount+' tarefa(s)/afazer(es) concluído(s)? Essa ação não pode ser desfeita.'))return;
+    this.textContent='Limpando...';this.disabled=true;
+    await performCleanupCompletedTasks();
+    this.textContent='Limpar tarefas concluídas';this.disabled=false;
+    alert('Pronto! Tarefas concluídas removidas.');
+    if(document.getElementById('page-acoes').classList.contains('active'))renderAcoes();
+    if(document.getElementById('page-tarefas').classList.contains('active'))renderTasks();
+    renderHome();
   });
 
   renderPushCard();
