@@ -1,6 +1,84 @@
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const API = ''; // Vercel API routes — same origin, no URL needed
 
+// ─── NOTIFICAÇÕES PUSH ───────────────────────────────────────────────────────
+// Chave pública VAPID (não é segredo — pode ficar no front-end).
+// A chave privada correspondente vive só no Vercel, como env var VAPID_PRIVATE_KEY.
+const VAPID_PUBLIC_KEY = 'BPHKzoYIZFKdW5jCkANAJxHh4JCxySQAt9EnxTr5FaiQ3pATdks04x1xa-S-CPoHE_ltnSwwF4sIYRnX6CZ5XYE';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && typeof Notification !== 'undefined';
+}
+
+// 'unsupported' | 'denied' | 'inactive' | 'active'
+async function getPushStatus() {
+  if (!pushSupported()) return 'unsupported';
+  if (Notification.permission === 'denied') return 'denied';
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return 'inactive';
+    const sub = await reg.pushManager.getSubscription();
+    return sub ? 'active' : 'inactive';
+  } catch { return 'inactive'; }
+}
+
+async function enablePushNotifications() {
+  if (!pushSupported()) { alert('Seu navegador não suporta notificações push.'); return false; }
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') return false;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+    }
+    const subJson = sub.toJSON();
+    await fetch(API + '/api/push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
+      body: JSON.stringify({ endpoint: subJson.endpoint, keys: subJson.keys })
+    });
+    return true;
+  } catch (e) { console.error('Erro ao ativar notificações:', e); return false; }
+}
+
+async function disablePushNotifications() {
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return true;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      await fetch(API + '/api/push?endpoint=' + encodeURIComponent(endpoint), { method: 'DELETE', headers: { Authorization: 'Bearer ' + authToken } });
+    }
+    return true;
+  } catch (e) { console.error('Erro ao desativar notificações:', e); return false; }
+}
+
+// Reativa a inscrição silenciosamente se a permissão já foi concedida antes
+// (ex: usuário voltou em outro dia e a inscrição do navegador expirou).
+async function silentlyEnsurePush() {
+  if (!pushSupported() || Notification.permission !== 'granted') return;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) return;
+    await enablePushNotifications();
+  } catch {}
+}
+
 // ─── AUTH STATE ──────────────────────────────────────────────────────────────
 let authToken = localStorage.getItem('eixo_token') || null;
 let currentUser = JSON.parse(localStorage.getItem('eixo_user') || 'null');
@@ -54,6 +132,7 @@ function showApp() {
   initApp();
   startTokenAutoRefresh();
   setTimeout(maybeShowOnboarding, 600);
+  silentlyEnsurePush();
 }
 let _tokenRefreshInterval = null;
 function startTokenAutoRefresh() {
@@ -1902,6 +1981,41 @@ function wireCascataAll(el){
   });
 }
 
+// ══ NOTIFICAÇÕES (cartão no Perfil) ══
+async function renderPushCard(){
+  var statusEl=document.getElementById('push-status');
+  var btn=document.getElementById('btn-toggle-push');
+  if(!statusEl||!btn)return;
+  var status=await getPushStatus();
+  if(status==='unsupported'){
+    statusEl.innerHTML='<span style="color:var(--text3)">Seu navegador não suporta notificações push.</span>';
+    btn.style.display='none';
+    return;
+  }
+  if(status==='denied'){
+    statusEl.innerHTML='<span style="color:var(--red)">Notificações bloqueadas. Habilite nas configurações do navegador para este site.</span>';
+    btn.style.display='none';
+    return;
+  }
+  btn.style.display='inline-block';
+  if(status==='active'){
+    statusEl.innerHTML='<span style="color:var(--green)">✓ Notificações ativadas neste navegador.</span>';
+    btn.textContent='Desativar notificações';
+    btn.className='btn';
+  }else{
+    statusEl.innerHTML='<span style="color:var(--text3)">Notificações desativadas neste navegador.</span>';
+    btn.textContent='Ativar notificações';
+    btn.className='btn btn-accent';
+  }
+  btn.onclick=async function(){
+    btn.disabled=true;btn.textContent='Aguarde...';
+    if(status==='active')await disablePushNotifications();
+    else await enablePushNotifications();
+    btn.disabled=false;
+    renderPushCard();
+  };
+}
+
 // ══ PERFIL ══
 function renderPerfil(){
   var el=document.getElementById('perfil-content');
@@ -1917,6 +2031,12 @@ function renderPerfil(){
       <button class="btn btn-accent" id="btn-save-perfil">Salvar alterações</button>
     </div>
     <div class="card" style="max-width:480px;margin-top:14px">
+      <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">🔔 Notificações</h2>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Receba um aviso 15 minutos antes e na hora exata das suas tarefas, afazeres e rotinas com horário.</p>
+      <div id="push-status" style="font-size:13px;margin-bottom:12px"></div>
+      <button class="btn btn-accent" id="btn-toggle-push">Carregando...</button>
+    </div>
+    <div class="card" style="max-width:480px;margin-top:14px">
       <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">Tutorial</h2>
       <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Rever a introdução de como o Good Day funciona.</p>
       <button class="btn" id="btn-rever-onboarding">Rever tutorial</button>
@@ -1925,6 +2045,8 @@ function renderPerfil(){
   document.getElementById('btn-rever-onboarding').addEventListener('click', function(){
     window._reverOnboarding();
   });
+
+  renderPushCard();
 
   document.getElementById('btn-save-perfil').addEventListener('click', async function(){
     var name=document.getElementById('perfil-name').value.trim();

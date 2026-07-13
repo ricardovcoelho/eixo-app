@@ -1,30 +1,38 @@
-const CACHE = 'goodday-v4';
-const ASSETS = ['/', '/index.html', '/app.js', '/style.css', '/manifest.json'];
+// sw.js — Service Worker do Good Day: recebe pushes e mostra notificações,
+// mesmo com o app fechado ou o navegador minimizado.
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {})
-  );
+self.addEventListener('install', function (event) {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+self.addEventListener('activate', function (event) {
+  event.waitUntil(self.clients.claim());
 });
 
-self.addEventListener('fetch', e => {
-  if (!e.request.url.startsWith('http')) return;
-  if (e.request.url.includes('/api/')) return;
-  e.respondWith(
-    fetch(e.request).then(r => {
-      var rc = r.clone();
-      caches.open(CACHE).then(c => c.put(e.request, rc)).catch(() => {});
-      return r;
-    }).catch(() => caches.match(e.request))
+self.addEventListener('push', function (event) {
+  let data = { title: 'Good Day', body: 'Você tem um lembrete.' };
+  try { if (event.data) data = event.data.json(); } catch (e) {}
+
+  const options = {
+    body: data.body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.tag || 'good-day-reminder',
+    renotify: true,
+    data: { url: '/' }
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title || 'Good Day', options));
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      for (const client of clientList) {
+        if ('focus' in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow('/');
+    })
   );
 });
