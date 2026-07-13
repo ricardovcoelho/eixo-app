@@ -56,6 +56,8 @@ module.exports = async (req, res) => {
     return res.status(401).json({ error: 'Não autorizado.' });
   }
 
+  const debug = req.query && req.query.debug === '1';
+
   const now = new Date();
   const before = new Date(now.getTime() + LEAD_MINUTES * 60000);
   const nowP = saoPauloParts(now);
@@ -63,6 +65,7 @@ module.exports = async (req, res) => {
 
   const sb = getSupabase(); // service key — acesso total, ignora RLS (cron não tem "usuário logado")
   const results = { sent: 0, errors: [] };
+  if (debug) results.debug = { now: nowP, before: beforeP };
 
   try {
     // ── TAREFAS / AFAZERES ────────────────────────────────────────────────
@@ -72,6 +75,10 @@ module.exports = async (req, res) => {
       .in('due_date', [nowP.dateStr, beforeP.dateStr])
       .eq('done', false);
     if (tErr) throw tErr;
+
+    if (debug) results.debug.tasksChecked = (tasks || []).map(t => ({
+      id: t.id, name: t.name, due_date: t.due_date, time: t.time, time_start: t.time_start, done: t.done
+    }));
 
     for (const t of (tasks || [])) {
       const timeVal = t.time || t.time_start;
