@@ -10,8 +10,19 @@ self.addEventListener('activate', function (event) {
 });
 
 self.addEventListener('push', function (event) {
+  console.log('[Good Day SW] evento push recebido. Tem dados?', !!(event && event.data));
   let data = { title: 'Good Day', body: 'Você tem um lembrete.' };
-  try { if (event.data) data = event.data.json(); } catch (e) {}
+  try {
+    if (event.data) {
+      const text = event.data.text();
+      console.log('[Good Day SW] payload bruto:', text);
+      data = JSON.parse(text);
+    }
+  } catch (e) {
+    console.error('[Good Day SW] erro ao ler payload:', e);
+  }
+
+  console.log('[Good Day SW] mostrando notificação:', data);
 
   const options = {
     body: data.body || '',
@@ -22,7 +33,11 @@ self.addEventListener('push', function (event) {
     data: { url: '/' }
   };
 
-  event.waitUntil(self.registration.showNotification(data.title || 'Good Day', options));
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Good Day', options)
+      .then(() => console.log('[Good Day SW] showNotification concluído com sucesso.'))
+      .catch(e => console.error('[Good Day SW] showNotification falhou:', e))
+  );
 });
 
 self.addEventListener('notificationclick', function (event) {
