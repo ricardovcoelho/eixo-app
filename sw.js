@@ -33,7 +33,6 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// ─── NOTIFICAÇÕES PUSH ───────────────────────────────────────────────────────
 self.addEventListener('push', function (event) {
   console.log('[Good Day SW] evento push recebido. Tem dados?', !!(event && event.data));
   let data = { title: 'Good Day', body: 'Você tem um lembrete.' };
