@@ -536,13 +536,11 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 
 /* ══ MOBILE — legibilidade ══ */
 @media(max-width:1024px){
-  html{font-size:20px!important;-webkit-text-size-adjust:100%;text-size-adjust:100%}
-  .home-name{font-size:2rem!important}
-  .home-item-name{font-size:1rem!important}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   .home-wrap{padding:20px 14px!important}
   .home-glass-card{padding:16px!important}
-  .btn{min-height:48px;font-size:1rem!important}
-  input,select,textarea{font-size:1rem!important}
+  /* fonte >=16px nos campos evita o zoom automático do iOS ao focar, sem inflar o resto do app */
+  input,select,textarea{font-size:16px!important}
 
   /* Rotinas: colunas são largura fixa em px — não deixar o rem global (20px)
      estourar o texto pra fora das células */
