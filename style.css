@@ -174,6 +174,7 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Inter','Sego
 .rdot:hover{border-color:var(--teal)}.rdot.ok{background:var(--green);border-color:var(--green)}.rdot.nok{background:var(--red);border-color:var(--red)}
 .rsq{width:22px;height:22px;border-radius:5px;border:1.5px solid var(--border2);cursor:pointer;transition:all 0.15s;background:var(--bg3);font-size:0.875rem;font-weight:700;color:var(--text3);display:flex;align-items:center;justify-content:center}
 .rsq:hover{border-color:var(--teal)}.rsq.ok{background:var(--green);border-color:var(--green);color:#fff}.rsq.nok{background:var(--red);border-color:var(--red);color:#fff}
+.rsq-empty{width:22px;height:22px;border-radius:4px;border:1.5px solid var(--border);background:var(--bg2)}
 .r-lbl{font-size:0.875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text3);text-align:center}
 
 /* ══ MATRIX ══ */
@@ -302,7 +303,10 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   .grid-4{grid-template-columns:1fr 1fr;gap:8px}.metric{padding:14px}.metric-val{font-size:22px}.metric-label{font-size:10px}
   .card{padding:14px}
   .form-row{grid-template-columns:1fr}
-  .r-table{overflow-x:auto;-webkit-overflow-scrolling:touch}.r-hdr,.r-row{min-width:580px}
+  .r-table{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .r-hdr,.r-row{grid-template-columns:minmax(96px,1fr) 24px 24px 4px 20px 20px 20px 20px 20px 4px 18px 18px 18px 18px 18px 18px 18px 48px;padding:8px 6px;min-width:0}
+  .rdot{width:16px;height:16px}
+  .rsq,.rsq-empty{width:18px;height:18px;border-radius:4px}
   .agenda-cols{display:flex!important;flex-direction:column!important;grid-template-columns:none!important}
   .agenda-day-col{display:flex!important;min-height:0!important;border-right:none!important;border-bottom:1px solid var(--border)}
   .agenda-day-col:last-child{border-bottom:none}
@@ -546,8 +550,8 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   /* Rotinas: colunas são largura fixa em px — não deixar o rem global (20px)
      estourar o texto pra fora das células */
   .r-cat-pill{font-size:11px!important}
-  .r-lbl{font-size:9px!important;letter-spacing:0!important}
-  .rsq{font-size:11px!important}
+  .r-lbl{font-size:8px!important;letter-spacing:0!important}
+  .rsq{font-size:9px!important}
   .r-row>div:first-child{font-size:12px!important}
 }
 

@@ -900,11 +900,13 @@ function renderTasks(){
   var h='<div class="card">';
   tasks.forEach(function(t){
     var obj=state.objectives.find(function(o){return o.id===t.objective_id;}),kr=obj?obj.krs.find(function(k){return k.id===t.kr_id;}):null,ov=!t.done&&isOverdue(t.due_date);
-    h+='<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap"><div class="check-box'+(t.done?' done':'')+'" data-task="'+t.id+'">'+chk()+'</div><span style="flex:1;min-width:100px;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red);font-weight:600':'')+'">'+t.name+(ov?' ⚠':'')+'</span><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">';
+    h+='<div style="padding:10px 0;border-bottom:1px solid var(--border)">';
+    h+='<div style="display:flex;align-items:center;gap:10px"><div class="check-box'+(t.done?' done':'')+'" data-task="'+t.id+'">'+chk()+'</div><span style="flex:1;min-width:0;'+(t.done?'text-decoration:line-through;color:var(--text3)':ov?'color:var(--red);font-weight:600':'')+'">'+t.name+(ov?' ⚠':'')+'</span></div>';
+    h+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;padding-left:30px">';
     h+=obj?'<span class="badge badge-amber link-obj" data-tid="'+t.id+'" style="cursor:pointer">'+(obj.name.length>20?obj.name.slice(0,20)+'…':obj.name)+'</span>':'<span class="badge badge-gray link-obj" data-tid="'+t.id+'" style="cursor:pointer;opacity:0.6">+ Objetivo</span>';
     if(kr){h+='<span style="font-size:11px;color:var(--text3)">›</span><span class="badge badge-green link-kr" data-tid="'+t.id+'" style="cursor:pointer">'+(kr.name.length>20?kr.name.slice(0,20)+'…':kr.name)+'</span>';}
     else if(obj){h+='<span style="font-size:11px;color:var(--text3)">›</span><span class="badge badge-gray link-kr" data-tid="'+t.id+'" style="cursor:pointer;opacity:0.6">+ Resultado-Chave</span>';}
-    h+='</div>'+(t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'')+'<button class="btn btn-sm btn-icon edt-task" data-id="'+t.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-task" data-id="'+t.id+'">'+trsh()+'</button></div>';
+    h+=(t.due_date?'<span style="font-size:11px;color:'+(ov?'var(--red)':'var(--text3)')+'">'+t.due_date+'</span>':'')+'<button class="btn btn-sm btn-icon edt-task" data-id="'+t.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-task" data-id="'+t.id+'">'+trsh()+'</button></div></div>';
   });
   h+='</div>';el.innerHTML=h;
   el.querySelectorAll('.check-box').forEach(function(b){b.addEventListener('click',function(){toggleTask(parseInt(this.dataset.task));});});
@@ -948,9 +950,9 @@ function renderRoutines(){
           }
           return false;
         }
-        for(var w=1;w<=5;w++){var wkey=wk(w),wv=checks[wkey],wa=wkActive(w);if(wa){h+='<div class="rcell"><div class="rsq'+(wv===true?' ok':wv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+wkey+'">S'+w+'</div></div>';}else{h+='<div class="rcell"><div style="width:22px;height:22px;border-radius:4px;border:1.5px solid var(--border);background:var(--bg2)"></div></div>';}}
+        for(var w=1;w<=5;w++){var wkey=wk(w),wv=checks[wkey],wa=wkActive(w);if(wa){h+='<div class="rcell"><div class="rsq'+(wv===true?' ok':wv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+wkey+'">S'+w+'</div></div>';}else{h+='<div class="rcell"><div class="rsq-empty"></div></div>';}}
         h+='<div></div>';
-        for(var d2=0;d2<7;d2++){var dkey='day'+yr+'-'+mo+'-w'+d2,dv=checks[dkey],da=dayActive(d2);if(da){h+='<div class="rcell"><div class="rsq'+(dv===true?' ok':dv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+dkey+'">'+DAYS[d2]+'</div></div>';}else{h+='<div class="rcell"><div style="width:22px;height:22px;border-radius:4px;border:1.5px solid var(--border);background:var(--bg2)"></div></div>';}}
+        for(var d2=0;d2<7;d2++){var dkey='day'+yr+'-'+mo+'-w'+d2,dv=checks[dkey],da=dayActive(d2);if(da){h+='<div class="rcell"><div class="rsq'+(dv===true?' ok':dv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+dkey+'">'+DAYS[d2]+'</div></div>';}else{h+='<div class="rcell"><div class="rsq-empty"></div></div>';}}
         h+='<div class="rcell" style="display:flex;gap:3px"><button class="btn btn-sm btn-icon edt-r" data-id="'+r.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-r" data-id="'+r.id+'">'+trsh()+'</button></div></div>';
       });
     }
