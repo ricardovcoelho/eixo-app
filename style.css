@@ -66,9 +66,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Inter','Sego
   overflow:hidden;
   transition:width 0.25s cubic-bezier(0.4,0,0.2,1);
 }
-.sidebar:hover{
-  width:200px;
-  box-shadow:4px 0 32px rgba(27,27,58,0.28);
+@media(hover:hover) and (pointer:fine){
+  .sidebar:hover{
+    width:200px;
+    box-shadow:4px 0 32px rgba(27,27,58,0.28);
+  }
 }
 .sidebar-logo{
   width:40px;height:40px;
@@ -288,18 +290,18 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 /* ══ MOBILE ══ */
 .burger{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:4px;padding:4px}
 .burger span{width:18px;height:2px;background:var(--text2);border-radius:1px;display:block}
-.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:99}
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99}
 .mob-overlay.open{display:block}
 @media(max-width:1024px){
   .app{padding-left:0}
   .sidebar{position:fixed;left:calc(-1 * var(--sidebar-w));top:0;bottom:0;z-index:200;transition:left 0.2s}
-  .sidebar.open{left:0;width:200px}
+  .sidebar.open{left:0;width:min(78vw,260px)}
   .sidebar.open .nav-item-label,.sidebar.open .sidebar-logo-text,.sidebar.open .nav-section-label{opacity:1}
   .burger{display:flex!important;position:relative;z-index:10}
   .topbar{padding:12px 16px}.content{padding:16px}
   .grid-4{grid-template-columns:1fr 1fr}.metric-val{font-size:24px}
   .form-row{grid-template-columns:1fr}
-  .r-table{overflow-x:auto}.r-hdr,.r-row{min-width:580px}
+  .r-table{overflow-x:auto;-webkit-overflow-scrolling:touch}.r-hdr,.r-row{min-width:580px}
   .agenda-cols{display:flex!important;flex-direction:column!important;grid-template-columns:none!important}
   .agenda-day-col{display:flex!important;min-height:0!important;border-right:none!important;border-bottom:1px solid var(--border)}
   .agenda-day-col:last-child{border-bottom:none}
@@ -406,19 +408,21 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   transition:width 0.25s ease;
   overflow:hidden;
 }
-.sidebar:hover{
-  width:200px;
-}
-.sidebar:hover .nav-item-label{
-  opacity:1;
-  transform:translateX(0);
-}
-.sidebar:hover .nav-item::after{
-  display:none;
-}
-.sidebar:hover .sidebar-logo-text{
-  opacity:1;
-  transform:translateX(0);
+@media(hover:hover) and (pointer:fine){
+  .sidebar:hover{
+    width:200px;
+  }
+  .sidebar:hover .nav-item-label{
+    opacity:1;
+    transform:translateX(0);
+  }
+  .sidebar:hover .nav-item::after{
+    display:none;
+  }
+  .sidebar:hover .sidebar-logo-text{
+    opacity:1;
+    transform:translateX(0);
+  }
 }
 .nav-item{
   width:100%;
@@ -539,6 +543,13 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
   .home-glass-card{padding:16px!important}
   .btn{min-height:48px;font-size:1rem!important}
   input,select,textarea{font-size:1rem!important}
+
+  /* Rotinas: colunas são largura fixa em px — não deixar o rem global (20px)
+     estourar o texto pra fora das células */
+  .r-cat-pill{font-size:11px!important}
+  .r-lbl{font-size:9px!important;letter-spacing:0!important}
+  .rsq{font-size:11px!important}
+  .r-row>div:first-child{font-size:12px!important}
 }
 
 /* ══ DASHBOARD ══ */
