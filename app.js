@@ -1790,34 +1790,48 @@ function renderAgendaSingleDay(d){
 var cascataOpenDream = null;   // id do projeto expandido
 var cascataOpenObj = null;     // id do objetivo expandido
 var cascataOpenKr = null;      // id do kr expandido
+var cascataShowStandby = false; // seção de projetos em standby, aberta/fechada
 
 function renderCascata(){
   var el = document.getElementById('cascata-content');
   if(!el) return;
+
+  var activeDreams = state.dreams.filter(function(d){return !d.standby;});
+  var standbyDreams = state.dreams.filter(function(d){return d.standby;});
 
   var h = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">';
   h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Seus Projetos</div>';
   h += '<button class="btn btn-accent" id="btn-novo-projeto-cascata">+ Novo Projeto</button>';
   h += '</div>';
 
-  if(!state.dreams.length){
-    h += '<div style="color:var(--text3);padding:48px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xl);font-size:14px">Nenhum projeto ainda.<br><br>Clique em <strong>+ Novo Projeto</strong> para começar.</div>';
-    el.innerHTML = h;
-    wireCascataTop(el);
-    return;
+  if(!activeDreams.length){
+    h += '<div style="color:var(--text3);padding:48px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xl);font-size:14px">Nenhum projeto ativo ainda.<br><br>Clique em <strong>+ Novo Projeto</strong> para começar.</div>';
+  } else {
+    h += '<div style="display:flex;flex-direction:column;gap:10px">';
+    activeDreams.forEach(function(d){
+      h += renderCascataDream(d,false);
+    });
+    h += '</div>';
   }
 
-  h += '<div style="display:flex;flex-direction:column;gap:10px">';
-  state.dreams.forEach(function(d){
-    h += renderCascataDream(d);
-  });
-  h += '</div>';
+  if(standbyDreams.length){
+    h += '<div style="margin-top:28px;border-top:1px solid var(--border);padding-top:16px">';
+    h += '<button class="btn btn-sm" id="btn-toggle-standby" style="width:100%;justify-content:center;color:var(--text3)">'+(cascataShowStandby?'▲ Ocultar':'▾ Ver')+' projetos em standby ('+standbyDreams.length+')</button>';
+    if(cascataShowStandby){
+      h += '<div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;opacity:0.75">';
+      standbyDreams.forEach(function(d){
+        h += renderCascataDream(d,true);
+      });
+      h += '</div>';
+    }
+    h += '</div>';
+  }
 
   el.innerHTML = h;
   wireCascataAll(el);
 }
 
-function renderCascataDream(d){
+function renderCascataDream(d, isStandby){
   var isOpen = cascataOpenDream===d.id;
   var p=dPct(d.id), bc2=dreamBarColor(d.id);
   var objs = state.objectives.filter(function(o){return o.dream_id===d.id;});
@@ -1835,7 +1849,10 @@ function renderCascataDream(d){
   h += '</div>';
   h += '<div class="cascata-row-actions" style="display:flex;align-items:center;gap:10px;flex-shrink:0">';
   h += '<div style="font-size:24px;font-weight:800;color:'+(p>0?'var(--accent)':'var(--text3)')+'">'+p+'%</div>';
-  h += '<button class="btn btn-sm del-dream-cascata" data-id="'+d.id+'" onclick="event.stopPropagation()" style="color:var(--red);border-color:rgba(192,57,43,0.2);background:var(--red-bg)">🗑</button>';
+  h += isStandby
+    ? '<button class="btn btn-sm reativar-dream-cascata" data-id="'+d.id+'" onclick="event.stopPropagation()" title="Reativar projeto" style="color:var(--teal);border-color:var(--teal-border);background:var(--teal-bg)">▶ Reativar</button>'
+    : '<button class="btn btn-sm standby-dream-cascata" data-id="'+d.id+'" onclick="event.stopPropagation()" title="Colocar em standby">⏸</button>';
+  h += '<button class="btn btn-sm del-dream-cascata" data-id="'+d.id+'" onclick="event.stopPropagation()" title="Excluir projeto" style="color:var(--red);border-color:rgba(192,57,43,0.2);background:var(--red-bg)">🗑</button>';
   h += '</div>';
   h += '</div>';
 
@@ -2005,6 +2022,33 @@ function wireCascataAll(el){
       await loadAll();
       renderCascata();
     });
+  });
+
+  // Colocar projeto em standby
+  el.querySelectorAll('.standby-dream-cascata').forEach(function(b){
+    b.addEventListener('click', async function(e){
+      e.stopPropagation();
+      await sbUpdate('dreams', parseInt(this.dataset.id), {standby:true});
+      await loadAll();
+      renderCascata();
+    });
+  });
+
+  // Reativar projeto (tirar do standby)
+  el.querySelectorAll('.reativar-dream-cascata').forEach(function(b){
+    b.addEventListener('click', async function(e){
+      e.stopPropagation();
+      await sbUpdate('dreams', parseInt(this.dataset.id), {standby:false});
+      await loadAll();
+      renderCascata();
+    });
+  });
+
+  // Mostrar/ocultar seção de standby
+  var btnToggleStandby = document.getElementById('btn-toggle-standby');
+  if(btnToggleStandby) btnToggleStandby.addEventListener('click', function(){
+    cascataShowStandby = !cascataShowStandby;
+    renderCascata();
   });
 
   // Deletar objetivo
