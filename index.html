@@ -26,6 +26,7 @@
         <div class="fg"><label>Senha</label><input id="login-password" type="password" placeholder="••••••••"></div>
         <div id="login-error" class="auth-error" style="display:none"></div>
         <button class="auth-btn" id="btn-login">Entrar</button>
+        <div class="auth-switch"><span id="goto-forgot">Esqueci minha senha</span></div>
         <div class="auth-switch">Não tem conta? <span id="goto-signup">Criar conta</span></div>
       </div>
       <div id="auth-signup" style="display:none">
@@ -36,6 +37,21 @@
         <div id="signup-error" class="auth-error" style="display:none"></div>
         <button class="auth-btn" id="btn-signup">Criar conta</button>
         <div class="auth-switch">Já tem conta? <span id="goto-login">Entrar</span></div>
+      </div>
+      <div id="auth-forgot" style="display:none">
+        <div class="auth-sub" style="margin-bottom:20px">Informe seu email. Se houver conta, enviamos um link para você criar uma senha nova.</div>
+        <div class="fg"><label>Email</label><input id="forgot-email" type="email" placeholder="seu@email.com"></div>
+        <div id="forgot-error" class="auth-error" style="display:none"></div>
+        <div id="forgot-success" class="auth-success" style="display:none">Se esse email tiver conta, o link chega em instantes. Confira também a caixa de spam.</div>
+        <button class="auth-btn" id="btn-forgot">Enviar link</button>
+        <div class="auth-switch">Lembrou a senha? <span id="goto-login-from-forgot">Entrar</span></div>
+      </div>
+      <div id="auth-reset" style="display:none">
+        <div class="auth-sub" style="margin-bottom:20px">Defina sua nova senha.</div>
+        <div class="fg"><label>Nova senha</label><input id="reset-password" type="password" placeholder="Mínimo 6 caracteres"></div>
+        <div class="fg"><label>Confirmar nova senha</label><input id="reset-password-confirm" type="password" placeholder="Repita a senha"></div>
+        <div id="reset-error" class="auth-error" style="display:none"></div>
+        <button class="auth-btn" id="btn-reset-password">Salvar nova senha</button>
       </div>
     </div>
   </div>

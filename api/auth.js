@@ -64,6 +64,27 @@ module.exports = async (req, res) => {
       return res.json({ success: true });
     }
 
+    // Esqueci minha senha — dispara o e-mail de recuperação do próprio Supabase
+    if (action === 'request_password_reset') {
+      if (!email) return res.status(400).json({ error: 'Informe o email.' });
+      const siteUrl = req.headers.origin || 'https://eixo-app-kk8v.vercel.app';
+      await sb.auth.resetPasswordForEmail(email, { redirectTo: siteUrl + '/' });
+      // Sempre responde sucesso, exista ou não a conta — evita revelar quais emails têm cadastro
+      return res.json({ success: true });
+    }
+
+    // Confirma a nova senha usando o token que veio no link do email
+    if (action === 'confirm_password_reset') {
+      const { access_token, password: newPassword } = req.body;
+      if (!access_token) return res.status(400).json({ error: 'Link inválido ou expirado. Peça um novo.' });
+      if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Senha precisa ter ao menos 6 caracteres.' });
+      const { data: userData, error: userErr } = await sb.auth.getUser(access_token);
+      if (userErr || !userData?.user) return res.status(401).json({ error: 'Link inválido ou expirado. Peça um novo.' });
+      const { error } = await sb.auth.admin.updateUserById(userData.user.id, { password: newPassword });
+      if (error) return res.status(400).json({ error: error.message });
+      return res.json({ success: true });
+    }
+
     return res.status(400).json({ error: 'Ação inválida.' });
   } catch (e) {
     return res.status(500).json({ error: e.message });

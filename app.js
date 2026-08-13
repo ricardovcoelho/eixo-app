@@ -142,9 +142,45 @@ function startTokenAutoRefresh() {
     if (authToken) await tryRefresh();
   }, 40 * 60 * 1000);
 }
+function showAuthView(id) {
+  ['auth-login', 'auth-signup', 'auth-forgot', 'auth-reset'].forEach((v) => {
+    document.getElementById(v).style.display = v === id ? 'block' : 'none';
+  });
+}
 function wireAuth() {
-  document.getElementById('goto-signup').addEventListener('click', () => { document.getElementById('auth-login').style.display = 'none'; document.getElementById('auth-signup').style.display = 'block'; });
-  document.getElementById('goto-login').addEventListener('click', () => { document.getElementById('auth-signup').style.display = 'none'; document.getElementById('auth-login').style.display = 'block'; });
+  document.getElementById('goto-signup').addEventListener('click', () => showAuthView('auth-signup'));
+  document.getElementById('goto-login').addEventListener('click', () => showAuthView('auth-login'));
+  document.getElementById('goto-forgot').addEventListener('click', () => {
+    document.getElementById('forgot-email').value = document.getElementById('login-email').value.trim();
+    showAuthView('auth-forgot');
+  });
+  document.getElementById('goto-login-from-forgot').addEventListener('click', () => showAuthView('auth-login'));
+  document.getElementById('btn-forgot').addEventListener('click', async () => {
+    const email = document.getElementById('forgot-email').value.trim();
+    const errEl = document.getElementById('forgot-error'), okEl = document.getElementById('forgot-success');
+    errEl.style.display = 'none'; okEl.style.display = 'none';
+    if (!email) { errEl.textContent = 'Informe seu email.'; errEl.style.display = 'block'; return; }
+    const btn = document.getElementById('btn-forgot'); btn.textContent = 'Enviando...'; btn.disabled = true;
+    await fetch(`${API}/api/auth`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'request_password_reset', email }) }).then(r => r.json());
+    btn.textContent = 'Enviar link'; btn.disabled = false;
+    okEl.style.display = 'block';
+  });
+  document.getElementById('btn-reset-password').addEventListener('click', async () => {
+    const password = document.getElementById('reset-password').value, confirm = document.getElementById('reset-password-confirm').value;
+    const errEl = document.getElementById('reset-error'); errEl.style.display = 'none';
+    if (!password || password.length < 6) { errEl.textContent = 'Senha precisa ter ao menos 6 caracteres.'; errEl.style.display = 'block'; return; }
+    if (password !== confirm) { errEl.textContent = 'Senhas não conferem.'; errEl.style.display = 'block'; return; }
+    if (!window._recoveryAccessToken) { errEl.textContent = 'Link inválido ou expirado. Peça um novo.'; errEl.style.display = 'block'; return; }
+    const btn = document.getElementById('btn-reset-password'); btn.textContent = 'Salvando...'; btn.disabled = true;
+    const data = await fetch(`${API}/api/auth`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'confirm_password_reset', access_token: window._recoveryAccessToken, password }) }).then(r => r.json());
+    btn.textContent = 'Salvar nova senha'; btn.disabled = false;
+    if (data.error) { errEl.textContent = data.error; errEl.style.display = 'block'; return; }
+    window._recoveryAccessToken = null;
+    history.replaceState(null, '', window.location.pathname);
+    document.getElementById('login-password').value = '';
+    alert('Senha alterada! Já pode entrar com a senha nova.');
+    showAuthView('auth-login');
+  });
   document.getElementById('btn-login').addEventListener('click', async () => {
     const email = document.getElementById('login-email').value.trim(), password = document.getElementById('login-password').value;
     const errEl = document.getElementById('login-error'); errEl.style.display = 'none';
@@ -584,9 +620,15 @@ window._openGlassFromDay=function(type,id,dayKey){if(type==='task'){const t=stat
   if (earlyTheme === 'dark') document.body.classList.add('dark-theme');
 
   const style=document.createElement('style');
-  style.textContent=`.auth-wrap{position:fixed;inset:0;width:100%;height:100%;background:linear-gradient(145deg,#1B1B3A,#252558,#1a3a4a);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}.auth-card{background:rgba(255,255,255,0.07);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:40px;width:100%;max-width:400px;box-sizing:border-box}.auth-logo{width:72px;height:72px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}.auth-title{color:#fff;font-size:26px;font-weight:800;text-align:center;letter-spacing:-0.5px;margin-bottom:4px}.auth-sub{color:rgba(255,255,255,0.4);font-size:13px;text-align:center;margin-bottom:28px}.auth-card .fg{margin-bottom:14px}.auth-card .fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);margin-bottom:6px}.auth-card .fg input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;transition:all 0.15s;box-sizing:border-box}.auth-card .fg input:focus{outline:none;border-color:var(--accent)}.auth-card .fg input::placeholder{color:rgba(255,255,255,0.3)}.auth-btn{width:100%;padding:13px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}.auth-btn:disabled{opacity:0.5;cursor:not-allowed}.auth-switch{text-align:center;font-size:13px;color:rgba(255,255,255,0.4);margin-top:16px}.auth-switch span{color:var(--accent);cursor:pointer;font-weight:600}.auth-error{background:rgba(198,93,59,0.15);border:1px solid rgba(198,93,59,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#E8856A;margin-bottom:12px}`;
+  style.textContent=`.auth-wrap{position:fixed;inset:0;width:100%;height:100%;background:linear-gradient(145deg,#1B1B3A,#252558,#1a3a4a);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box}.auth-card{background:rgba(255,255,255,0.07);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.15);border-radius:24px;padding:40px;width:100%;max-width:400px;box-sizing:border-box}.auth-logo{width:72px;height:72px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}.auth-title{color:#fff;font-size:26px;font-weight:800;text-align:center;letter-spacing:-0.5px;margin-bottom:4px}.auth-sub{color:rgba(255,255,255,0.4);font-size:13px;text-align:center;margin-bottom:28px}.auth-card .fg{margin-bottom:14px}.auth-card .fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:rgba(255,255,255,0.4);margin-bottom:6px}.auth-card .fg input{width:100%;padding:11px 14px;border-radius:10px;border:1.5px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.08);color:#fff;font-size:14px;font-family:inherit;transition:all 0.15s;box-sizing:border-box}.auth-card .fg input:focus{outline:none;border-color:var(--accent)}.auth-card .fg input::placeholder{color:rgba(255,255,255,0.3)}.auth-btn{width:100%;padding:13px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px}.auth-btn:disabled{opacity:0.5;cursor:not-allowed}.auth-switch{text-align:center;font-size:13px;color:rgba(255,255,255,0.4);margin-top:16px}.auth-switch span{color:var(--accent);cursor:pointer;font-weight:600}.auth-error{background:rgba(198,93,59,0.15);border:1px solid rgba(198,93,59,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#E8856A;margin-bottom:12px}.auth-success{background:rgba(46,125,82,0.15);border:1px solid rgba(46,125,82,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#6FCF97;margin-bottom:12px}`;
   document.head.appendChild(style);
-  if(authToken&&currentUser){tryRefresh().finally(showApp);}else{showAuth();wireAuth();}
+
+  // Link de "esqueci minha senha" traz #access_token=...&type=recovery no final da URL
+  const hashParams = new URLSearchParams(window.location.hash.replace('#', '?'));
+  if (hashParams.get('type') === 'recovery' && hashParams.get('access_token')) {
+    window._recoveryAccessToken = hashParams.get('access_token');
+    showAuth(); wireAuth(); showAuthView('auth-reset');
+  } else if(authToken&&currentUser){tryRefresh().finally(showApp);}else{showAuth();wireAuth();}
 })();
 
 // ─── RENDER DASH ─────────────────────────────────────────────────────────────
