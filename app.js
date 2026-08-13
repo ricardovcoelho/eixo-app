@@ -593,8 +593,15 @@ window._openGlassFromDay=function(type,id,dayKey){if(type==='task'){const t=stat
 function renderDash(){
   var tod=today();
 
+  // projetos em standby saem de todas as contagens e listas do dashboard
+  var activeDreams=state.dreams.filter(function(d){return !d.standby;});
+  var standbyObjIds=state.objectives.filter(function(o){
+    var dr=state.dreams.find(function(d){return d.id===o.dream_id;});
+    return dr&&dr.standby;
+  }).map(function(o){return o.id;});
+
   // métricas de tarefas
-  var allTasks=state.tasks;
+  var allTasks=state.tasks.filter(function(t){return !t.objective_id||standbyObjIds.indexOf(t.objective_id)===-1;});
   var taskDone=allTasks.filter(function(t){return t.done;}).length;
   var taskTotal=allTasks.length;
   var taskDonePct=taskTotal?Math.round((taskDone/taskTotal)*100):0;
@@ -607,9 +614,9 @@ function renderDash(){
   var rotPct=rotTotal?Math.round((rotDone/rotTotal)*100):0;
 
   // métricas de projetos
-  var projTotal=state.dreams.length;
-  var projDonePct=projTotal?Math.round(state.dreams.reduce(function(a,d){return a+dPct(d.id);},0)/projTotal):0;
-  var projComAtraso=state.dreams.filter(function(d){
+  var projTotal=activeDreams.length;
+  var projDonePct=projTotal?Math.round(activeDreams.reduce(function(a,d){return a+dPct(d.id);},0)/projTotal):0;
+  var projComAtraso=activeDreams.filter(function(d){
     var objIds=state.objectives.filter(function(o){return o.dream_id===d.id;}).map(function(o){return o.id;});
     return allTasks.some(function(t){return !t.done&&objIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);});
   }).length;
@@ -671,11 +678,11 @@ function renderDash(){
 
   // ── PROJETOS (lista única, atrasados primeiro com destaque) ──
   h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px">Meus Projetos</div>';
-  if(!state.dreams.length){
-    h+='<div style="color:var(--text3);padding:24px;text-align:center">Nenhum projeto cadastrado.</div>';
+  if(!activeDreams.length){
+    h+='<div style="color:var(--text3);padding:24px;text-align:center">Nenhum projeto ativo no momento.</div>';
   } else {
     // ordena: atrasados primeiro
-    var sorted=state.dreams.slice().sort(function(a,b){
+    var sorted=activeDreams.slice().sort(function(a,b){
       var aObjIds=state.objectives.filter(function(o){return o.dream_id===a.id;}).map(function(o){return o.id;});
       var bObjIds=state.objectives.filter(function(o){return o.dream_id===b.id;}).map(function(o){return o.id;});
       var aOv=allTasks.some(function(t){return !t.done&&aObjIds.indexOf(t.objective_id)!==-1&&isOverdue(t.due_date);})?1:0;
