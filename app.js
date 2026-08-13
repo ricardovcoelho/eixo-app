@@ -1346,15 +1346,21 @@ function renderHome(){
   var homeTheme=localStorage.getItem('eixo_home_theme')||'dark',q=getTodayQuote(),now=new Date();
   var dateStr=now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});dateStr=dateStr.charAt(0).toUpperCase()+dateStr.slice(1);
 
+  // projetos em standby saem do cartão de Projetos aqui também
+  var standbyObjIdsHome=state.objectives.filter(function(o){
+    var dr=state.dreams.find(function(d){return d.id===o.dream_id;});
+    return dr&&dr.standby;
+  }).map(function(o){return o.id;});
+
   // Projetos: tarefas com objetivo, atrasadas OU com data hoje
   var projTasks=state.tasks.filter(function(t){
-    if(t.done||!t.objective_id)return false;
+    if(t.done||!t.objective_id||standbyObjIdsHome.indexOf(t.objective_id)!==-1)return false;
     if(!t.due_date)return false;
     var d=t.due_date.substring(0,10);
     return d===ds||d<ds;
   });
   var projDone=state.tasks.filter(function(t){
-    if(!t.done||!t.objective_id)return false;
+    if(!t.done||!t.objective_id||standbyObjIdsHome.indexOf(t.objective_id)!==-1)return false;
     if(!t.due_date)return false;
     var d=t.due_date.substring(0,10);
     return d===ds||d<ds;
