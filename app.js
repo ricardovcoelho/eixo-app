@@ -1004,38 +1004,51 @@ function renderRoutines(){
   var customCatList=(state.customCats||[]).map(function(k){return {key:k,label:state.catLabels&&state.catLabels[k]?state.catLabels[k]:k.toUpperCase()};});
   var cats=defaultCats.concat(customCatList);
   var hdr='<div class="r-hdr"><div style="font-size:10px;font-weight:700;color:var(--text3)">Rotina</div><div class="r-lbl">Ant</div><div class="r-lbl">Atual</div><div></div><div class="r-lbl">S1</div><div class="r-lbl">S2</div><div class="r-lbl">S3</div><div class="r-lbl">S4</div><div class="r-lbl">S5</div><div></div><div class="r-lbl">D</div><div class="r-lbl">S</div><div class="r-lbl">T</div><div class="r-lbl">Q</div><div class="r-lbl">Q</div><div class="r-lbl">S</div><div class="r-lbl">S</div><div></div></div>';
+  function routineRowHtml(r){
+    var checks=r.checks||{},pv=checks[prevMoKey],cv=checks[curMoKey];
+    var rh='<div class="r-row"><div style="font-size:13px;font-weight:500">'+r.name+'</div>';
+    rh+='<div class="rcell"><div class="rdot'+(pv===true?' ok':pv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+prevMoKey+'"></div></div>';
+    rh+='<div class="rcell"><div class="rdot'+(cv===true?' ok':cv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+curMoKey+'"></div></div><div></div>';
+    var freq2=r.frequency;
+    function wkActive(w){return freq2==='daily'||freq2==='weekdays'||freq2==='weekly'||freq2==='custom_day'||((freq2==='monthly'||freq2==='monthly_days')&&w===4);}
+    function dayActive(dow){
+      if(freq2==='daily')return true;
+      if(freq2==='weekdays')return dow>=1&&dow<=5;
+      if(freq2==='weekly')return dow===5;
+      if(freq2==='custom_day'){
+        var days=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];
+        return days.indexOf(dow)!==-1;
+      }
+      return false;
+    }
+    for(var w=1;w<=5;w++){var wkey=wk(w),wv=checks[wkey],wa=wkActive(w);if(wa){rh+='<div class="rcell"><div class="rsq'+(wv===true?' ok':wv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+wkey+'">S'+w+'</div></div>';}else{rh+='<div class="rcell"><div class="rsq-empty"></div></div>';}}
+    rh+='<div></div>';
+    for(var d2=0;d2<7;d2++){var dkey='day'+yr+'-'+mo+'-w'+d2,dv=checks[dkey],da=dayActive(d2);if(da){rh+='<div class="rcell"><div class="rsq'+(dv===true?' ok':dv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+dkey+'">'+DAYS[d2]+'</div></div>';}else{rh+='<div class="rcell"><div class="rsq-empty"></div></div>';}}
+    rh+='<div class="rcell" style="display:flex;gap:3px"><button class="btn btn-sm btn-icon edt-r" data-id="'+r.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-r" data-id="'+r.id+'">'+trsh()+'</button></div></div>';
+    return rh;
+  }
   var h='';
+  var knownKeys=cats.map(function(c){return c.key;});
   cats.forEach(function(cat){
     var rs=state.routines.filter(function(r){return r.category===cat.key;}),catLabel=state.catLabels&&state.catLabels[cat.key]?state.catLabels[cat.key]:cat.label,isCustom=(state.customCats||[]).indexOf(cat.key)!==-1;
     h+='<div class="r-section"><div class="r-section-hdr"><div style="display:flex;align-items:center;gap:6px"><span class="r-cat-pill">'+catLabel+'</span><button class="btn btn-sm btn-icon edt-cat" data-cat="'+cat.key+'" style="padding:4px">'+edt()+'</button>'+(isCustom?'<button class="btn btn-sm btn-icon del-cat" data-cat="'+cat.key+'" style="padding:4px;color:var(--red)">'+trsh()+'</button>':'')+'</div><button class="btn btn-sm btn-accent add-r" data-cat="'+cat.key+'">+ Rotina</button></div>';
     h+='<div class="r-table">'+hdr;
     if(!rs.length){h+='<div style="padding:14px 12px;font-size:13px;color:var(--text3)">Nenhuma rotina.</div>';}
-    else{
-      rs.forEach(function(r){
-        var checks=r.checks||{},pv=checks[prevMoKey],cv=checks[curMoKey];
-        h+='<div class="r-row"><div style="font-size:13px;font-weight:500">'+r.name+'</div>';
-        h+='<div class="rcell"><div class="rdot'+(pv===true?' ok':pv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+prevMoKey+'"></div></div>';
-        h+='<div class="rcell"><div class="rdot'+(cv===true?' ok':cv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+curMoKey+'"></div></div><div></div>';
-        var freq2=r.frequency,rdow2=r.day_of_week!==null&&r.day_of_week!==undefined?parseInt(r.day_of_week):-1;
-        function wkActive(w){return freq2==='daily'||freq2==='weekdays'||freq2==='weekly'||freq2==='custom_day'||((freq2==='monthly'||freq2==='monthly_days')&&w===4);}
-        function dayActive(dow){
-          if(freq2==='daily')return true;
-          if(freq2==='weekdays')return dow>=1&&dow<=5;
-          if(freq2==='weekly')return dow===5;
-          if(freq2==='custom_day'){
-            var days=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];
-            return days.indexOf(dow)!==-1;
-          }
-          return false;
-        }
-        for(var w=1;w<=5;w++){var wkey=wk(w),wv=checks[wkey],wa=wkActive(w);if(wa){h+='<div class="rcell"><div class="rsq'+(wv===true?' ok':wv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+wkey+'">S'+w+'</div></div>';}else{h+='<div class="rcell"><div class="rsq-empty"></div></div>';}}
-        h+='<div></div>';
-        for(var d2=0;d2<7;d2++){var dkey='day'+yr+'-'+mo+'-w'+d2,dv=checks[dkey],da=dayActive(d2);if(da){h+='<div class="rcell"><div class="rsq'+(dv===true?' ok':dv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+dkey+'">'+DAYS[d2]+'</div></div>';}else{h+='<div class="rcell"><div class="rsq-empty"></div></div>';}}
-        h+='<div class="rcell" style="display:flex;gap:3px"><button class="btn btn-sm btn-icon edt-r" data-id="'+r.id+'">'+edt()+'</button><button class="btn btn-sm btn-icon del-r" data-id="'+r.id+'">'+trsh()+'</button></div></div>';
-      });
-    }
+    else{ rs.forEach(function(r){ h+=routineRowHtml(r); }); }
     h+='</div></div>';
   });
+
+  // Rotinas com categoria "perdida" (de um bug antigo) — sem isso, ficam invisíveis
+  // pra sempre, sem nem um botão de editar pra corrigir.
+  var orphanRoutines=state.routines.filter(function(r){return knownKeys.indexOf(r.category)===-1;});
+  if(orphanRoutines.length){
+    h+='<div class="r-section"><div class="r-section-hdr"><div style="display:flex;align-items:center;gap:6px"><span class="r-cat-pill" style="color:var(--text3);background:var(--bg3);border-color:var(--border2)">SEM CATEGORIA</span></div></div>';
+    h+='<div style="font-size:12px;color:var(--text3);margin:-4px 0 8px">Clique em editar e escolha uma categoria pra cada uma.</div>';
+    h+='<div class="r-table">'+hdr;
+    orphanRoutines.forEach(function(r){ h+=routineRowHtml(r); });
+    h+='</div></div>';
+  }
+
   h+='<div style="margin-top:8px"><button class="btn btn-sm" id="btn-new-group" style="width:100%;justify-content:center;color:var(--accent);border-color:var(--accent-border)">+ Novo Grupo de Rotinas</button></div>';
   el.innerHTML=h;
   el.querySelectorAll('.rdot[data-rid],.rsq[data-rid]').forEach(function(c){c.addEventListener('click',async function(){var r=state.routines.find(function(x){return x.id===parseInt(c.dataset.rid);});if(!r)return;if(!r.checks)r.checks={};var cur=r.checks[c.dataset.key];r.checks[c.dataset.key]=cur===null||cur===undefined?true:cur===true?false:null;await sbUpdate('routines',r.id,{checks:r.checks});renderRoutines();if(document.getElementById('page-home').classList.contains('active'))renderHome();});});
