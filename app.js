@@ -1056,7 +1056,16 @@ function renderRoutines(){
   el.querySelectorAll('.edt-r').forEach(function(b){b.addEventListener('click',function(){var r=state.routines.find(function(x){return x.id===parseInt(b.dataset.id);});if(!r)return;editRoutineId=r.id;populateRCatOptions();document.getElementById('routine-modal-title').textContent='Editar Rotina';document.getElementById('r-name').value=r.name;document.getElementById('r-cat').value=r.category;document.getElementById('r-freq').value=r.frequency;document.getElementById('r-time').value=r.time||'';document.querySelectorAll('.dow-cb').forEach(function(cb){cb.checked=false;});document.getElementById('r-mdays-input').value='';if(r.frequency==='custom_day'&&r.day_of_week!=null){var days=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];days.forEach(function(d){var cb=document.querySelector('.dow-cb[value="'+d+'"]');if(cb)cb.checked=true;});}if(r.frequency==='monthly_days'&&r.day_of_week!=null){var mdays=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];document.getElementById('r-mdays-input').value=mdays.join(', ');}document.getElementById('r-dow-group').style.display=r.frequency==='custom_day'?'block':'none';document.getElementById('r-mday-group').style.display=r.frequency==='monthly_days'?'block':'none';document.getElementById('r-time-group').style.display=(r.frequency==='custom_day'||r.frequency==='weekdays'||r.frequency==='weekly'||r.frequency==='monthly_days')?'block':'none';openModal('modal-routine');});});
   el.querySelectorAll('.del-r').forEach(function(b){b.addEventListener('click',async function(){if(!confirm('Excluir rotina?'))return;await sbDelete('routines',parseInt(b.dataset.id));state.routines=state.routines.filter(function(r){return r.id!==parseInt(b.dataset.id);});renderRoutines();});});
   el.querySelectorAll('.edt-cat').forEach(function(b){b.addEventListener('click',function(){editCatKey=b.dataset.cat;var cur=state.catLabels&&state.catLabels[editCatKey]?state.catLabels[editCatKey]:editCatKey.toUpperCase();document.getElementById('cat-edit-name').value=cur;document.getElementById('btn-save-cat').dataset.cat=editCatKey;openModal('modal-cat-edit');});});
-  el.querySelectorAll('.del-cat').forEach(function(b){b.addEventListener('click',function(){if(!confirm('Excluir grupo?'))return;var cat=b.dataset.cat;state.routines=state.routines.filter(function(r){return r.category!==cat;});state.customCats=(state.customCats||[]).filter(function(k){return k!==cat;});saveCatLabels();renderRoutines();});});
+  el.querySelectorAll('.del-cat').forEach(function(b){b.addEventListener('click',async function(){
+    var cat=b.dataset.cat;
+    var inGroup=state.routines.filter(function(r){return r.category===cat;});
+    var msg=inGroup.length?('Excluir este grupo e as '+inGroup.length+' rotina(s) dentro dele? Isso não pode ser desfeito.'):'Excluir grupo?';
+    if(!confirm(msg))return;
+    for(var i=0;i<inGroup.length;i++){await sbDelete('routines',inGroup[i].id);}
+    state.routines=state.routines.filter(function(r){return r.category!==cat;});
+    state.customCats=(state.customCats||[]).filter(function(k){return k!==cat;});
+    saveCatLabels();renderRoutines();
+  });});
   var btnNG=document.getElementById('btn-new-group');if(btnNG)btnNG.addEventListener('click',function(){document.getElementById('new-group-name').value='';openModal('modal-new-group');});
 }
 
