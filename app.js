@@ -236,12 +236,30 @@ async function loadAll() {
     state.tasks = allTasks.filter(t => !t.deleted_at);
     state.deletedTasks = allTasks.filter(t => !!t.deleted_at);
     state.objectives = (objectives||[]).map(o => { o.krs = (krs||[]).filter(k => k.objective_id===o.id); return o; });
-    try { const cl = localStorage.getItem('eixo_catlabels_'+currentUser?.id); if (cl) { const d = JSON.parse(cl); state.catLabels = d.labels||d; state.customCats = d.custom||[]; } } catch {}
+    // Grupos de rotina personalizados vêm do banco (currentUser); se o navegador tiver
+    // um grupo salvo só localmente (versão antiga) e o banco ainda não tiver nada, migra uma vez.
+    if (currentUser && (currentUser.custom_cats?.length || Object.keys(currentUser.cat_labels||{}).length)) {
+      state.catLabels = Object.assign({gestao:'GESTÃO',vendas:'VENDAS',pessoal:'PESSOAL',desenv:'DESENVOLVIMENTO'}, currentUser.cat_labels||{});
+      state.customCats = currentUser.custom_cats||[];
+    } else {
+      try {
+        const cl = localStorage.getItem('eixo_catlabels_'+currentUser?.id);
+        if (cl) {
+          const d = JSON.parse(cl);
+          state.catLabels = d.labels||d; state.customCats = d.custom||[];
+          if (state.customCats.length) saveCatLabels(); // migra pro banco
+        }
+      } catch {}
+    }
     setSyncStatus('ok');
     purgeOldTrash();
   } catch(e) { setSyncStatus('error'); console.error('Load error:',e); }
 }
-function saveCatLabels() { try { localStorage.setItem('eixo_catlabels_'+currentUser?.id, JSON.stringify({labels:state.catLabels,custom:state.customCats||[]})); } catch {} }
+function saveCatLabels() {
+  try { localStorage.setItem('eixo_catlabels_'+currentUser?.id, JSON.stringify({labels:state.catLabels,custom:state.customCats||[]})); } catch {}
+  if (currentUser) { currentUser.custom_cats = state.customCats||[]; currentUser.cat_labels = state.catLabels||{}; try { localStorage.setItem('eixo_user', JSON.stringify(currentUser)); } catch {} }
+  api('POST','auth',{action:'save_routine_categories', custom_cats: state.customCats||[], cat_labels: state.catLabels||{}});
+}
 async function sbInsert(t,d){setSyncStatus('syncing');const r=await api('POST',t,d);setSyncStatus(r?.error?'error':'ok');return r;}
 async function sbUpdate(t,id,d){setSyncStatus('syncing');const r=await api('PATCH',`${t}?id=${id}`,d);setSyncStatus(r?.error?'error':'ok');return r;}
 async function sbDelete(t,id){setSyncStatus('syncing');const r=await api('DELETE',`${t}?id=${id}`);setSyncStatus(r?.error?'error':'ok');return r;}

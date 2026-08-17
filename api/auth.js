@@ -26,7 +26,9 @@ module.exports = async (req, res) => {
         user: {
           id: data.user.id,
           email: data.user.email,
-          name: data.user.user_metadata?.name || email.split('@')[0]
+          name: data.user.user_metadata?.name || email.split('@')[0],
+          custom_cats: data.user.user_metadata?.custom_cats || [],
+          cat_labels: data.user.user_metadata?.cat_labels || {}
         }
       });
     }
@@ -60,6 +62,20 @@ module.exports = async (req, res) => {
       const { password: newPassword } = req.body;
       if (!newPassword || newPassword.length < 6) return res.status(400).json({ error: 'Senha precisa ter ao menos 6 caracteres.' });
       const { error } = await sb.auth.admin.updateUserById(userData.user.id, { password: newPassword });
+      if (error) return res.status(400).json({ error: error.message });
+      return res.json({ success: true });
+    }
+
+    // Grupos personalizados de rotina (nome/rótulo) — precisam ficar no banco,
+    // não só no navegador, senão somem em outro aparelho ou aba anônima
+    if (action === 'save_routine_categories') {
+      const token = (req.headers.authorization || '').replace('Bearer ', '');
+      if (!token) return res.status(401).json({ error: 'Não autenticado.' });
+      const { data: userData, error: userErr } = await sb.auth.getUser(token);
+      if (userErr || !userData?.user) return res.status(401).json({ error: 'Token inválido.' });
+      const { custom_cats, cat_labels } = req.body;
+      const updates = { user_metadata: { ...userData.user.user_metadata, custom_cats: custom_cats || [], cat_labels: cat_labels || {} } };
+      const { error } = await sb.auth.admin.updateUserById(userData.user.id, updates);
       if (error) return res.status(400).json({ error: error.message });
       return res.json({ success: true });
     }
