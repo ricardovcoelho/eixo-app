@@ -504,6 +504,7 @@ function wireSaveHandlers(){
     d.name=name;d.description=document.getElementById('de-desc').value;d.due_date=document.getElementById('de-date').value||null;
     await sbUpdate('dreams',editDreamId,{name:d.name,description:d.description,due_date:d.due_date});
     closeModal('modal-dream-edit');renderDreams();renderDash();
+    if(document.getElementById('page-cascata').classList.contains('active'))renderCascata();
   });
   document.getElementById('btn-add-kr').addEventListener('click',addKR);
   document.getElementById('btn-save-obj').addEventListener('click',async()=>{
@@ -1958,6 +1959,7 @@ function renderCascataDream(d, isStandby){
   h += isStandby
     ? '<button class="btn btn-sm reativar-dream-cascata" data-id="'+d.id+'" onclick="event.stopPropagation()" title="Reativar projeto" style="color:var(--teal);border-color:var(--teal-border);background:var(--teal-bg)">▶ Reativar</button>'
     : '<button class="btn btn-sm standby-dream-cascata" data-id="'+d.id+'" onclick="event.stopPropagation()" title="Colocar em standby">⏸</button>';
+  h += '<button class="btn btn-sm edt-dream-cascata" data-id="'+d.id+'" onclick="event.stopPropagation()" title="Editar projeto" style="padding:5px">'+edt()+'</button>';
   h += '<button class="btn btn-sm del-dream-cascata" data-id="'+d.id+'" onclick="event.stopPropagation()" title="Excluir projeto" style="color:var(--red);border-color:rgba(192,57,43,0.2);background:var(--red-bg)">🗑</button>';
   h += '</div>';
   h += '</div>';
@@ -2116,6 +2118,14 @@ function wireCascataAll(el){
       var id=parseInt(this.dataset.id);
       cascataOpenKr = cascataOpenKr===id ? null : id;
       renderCascata();
+    });
+  });
+
+  // Editar projeto
+  el.querySelectorAll('.edt-dream-cascata').forEach(function(b){
+    b.addEventListener('click', function(e){
+      e.stopPropagation();
+      openEditDream(parseInt(this.dataset.id));
     });
   });
 
