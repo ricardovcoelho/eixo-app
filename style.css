@@ -364,6 +364,15 @@ hr.sep{border:none;border-top:1px solid var(--border);margin:16px 0}
 .home-cards-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;z-index:1;position:relative}
 .home-glass-card{background:rgba(255,255,255,0.16);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.28);border-radius:22px;padding:24px;transition:all 0.2s;box-shadow:0 8px 28px rgba(0,0,0,0.35)}
 .home-glass-card:hover{background:rgba(255,255,255,0.22);transform:translateY(-3px);box-shadow:0 24px 60px rgba(0,0,0,0.4)}
+.home-glass-card.home-card-featured{grid-column:1/-1;padding:28px 28px 22px;border-color:rgba(232,133,106,0.45);box-shadow:0 16px 44px rgba(198,93,59,0.22)}
+.home-glass-card.home-card-featured .home-card-title{color:rgba(255,255,255,0.6);font-size:0.95rem}
+.home-glass-card.home-card-featured .home-item-name{font-size:0.95rem}
+.home-card-featured .home-card-items{max-height:360px;overflow-y:auto}
+.home-glass-card.home-card-secondary{padding:18px 20px}
+.home-glass-card.home-card-secondary .home-card-title{font-size:0.75rem}
+.home-glass-card.home-card-secondary .home-item-name{font-size:0.8rem}
+.home-glass-card.home-card-secondary .home-item{padding:7px 0}
+.home-wrap.light .home-glass-card.home-card-featured{border-color:rgba(198,93,59,0.35);box-shadow:0 14px 32px rgba(198,93,59,0.14)}
 .home-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .home-card-title{color:rgba(255,255,255,0.35);font-size:0.875rem;font-weight:700;text-transform:uppercase;letter-spacing:2.5px;display:flex;align-items:center;gap:8px}
 .home-card-count{background:rgba(198,93,59,0.18);color:#E8856A;font-size:0.875rem;font-weight:700;padding:3px 10px;border-radius:99px;border:1px solid rgba(198,93,59,0.25)}

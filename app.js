@@ -1441,6 +1441,7 @@ function renderHome(){
 function renderHome(){
   var el=document.getElementById('home-content');if(!el)return;
   var tod=today(),ds=fmtDate(tod),todDow=tod.getDay(),yr=tod.getFullYear(),mo=tod.getMonth(),dayKey='day'+yr+'-'+mo+'-w'+todDow;
+  var wkEndDate=weekStart(tod);wkEndDate.setDate(wkEndDate.getDate()+6);var weekEndStr=fmtDate(wkEndDate);
   var homeTheme=localStorage.getItem('eixo_home_theme')||'dark',q=getTodayQuote(),now=new Date();
   var dateStr=now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});dateStr=dateStr.charAt(0).toUpperCase()+dateStr.slice(1);
 
@@ -1450,19 +1451,21 @@ function renderHome(){
     return dr&&dr.standby;
   }).map(function(o){return o.id;});
 
-  // Projetos: tarefas com objetivo, atrasadas OU com data hoje
+  // Projetos: tarefas com objetivo, atrasadas OU com prazo dentro desta semana (não só hoje —
+  // é o que deve puxar o foco do dia, junto com o que já venceu)
   var projTasks=state.tasks.filter(function(t){
     if(t.done||!t.objective_id||standbyObjIdsHome.indexOf(t.objective_id)!==-1)return false;
     if(!t.due_date)return false;
     var d=t.due_date.substring(0,10);
-    return d===ds||d<ds;
+    return d<=weekEndStr;
   });
   var projDone=state.tasks.filter(function(t){
     if(!t.done||!t.objective_id||standbyObjIdsHome.indexOf(t.objective_id)!==-1)return false;
     if(!t.due_date)return false;
     var d=t.due_date.substring(0,10);
-    return d===ds||d<ds;
+    return d<=weekEndStr;
   });
+  projTasks.sort(function(a,b){return a.due_date.localeCompare(b.due_date);});
 
   // Rotinas: só as de hoje
   var todayRoutines=getEventsForDate(ds).filter(function(e){return e.type==='routine';});
@@ -1490,24 +1493,25 @@ function renderHome(){
 
   // Quadro 1: Projetos
   var pTotal=projTasks.length+projDone.length;
-  h+='<div class="home-glass-card" data-nav="cascata" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Projetos</div><span class="home-card-count'+(projTasks.length===0?' ok':'')+'">'+projDone.length+'/'+pTotal+'</span></div>';
-  if(!pTotal){h+='<div class="home-empty">Nenhuma tarefa de projeto hoje 🎉</div>';}
+  h+='<div class="home-glass-card home-card-featured" data-nav="cascata" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Projetos · Ações da semana</div><span class="home-card-count'+(projTasks.length===0?' ok':'')+'">'+projDone.length+'/'+pTotal+'</span></div>';
+  if(!projTasks.length){h+='<div class="home-empty">'+(pTotal?'Ações da semana em dia ✅':'Nenhuma ação de projeto esta semana 🎯')+'</div>';}
   else{
-    projTasks.forEach(function(t){var ov=t.due_date.substring(0,10)<ds;h+='<div class="home-item'+(ov?' home-item-overdue':'')+'"><div class="home-check" data-home-task="'+t.id+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+(ov?' ⚠':'')+'</div></div>';});
-    projDone.forEach(function(t){h+='<div class="home-item home-item-done"><div class="home-check done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+'</div></div>';});
+    h+='<div class="home-card-items">';
+    projTasks.forEach(function(t){var td=t.due_date.substring(0,10),ov=td<ds,isToday=td===ds,dlabel=ov?'atrasada':isToday?'hoje':new Date(td+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});h+='<div class="home-item'+(ov?' home-item-overdue':'')+'"><div class="home-check" data-home-task="'+t.id+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+'</div><span class="badge badge-gray" style="font-size:10px;flex-shrink:0">'+(ov?'⚠ '+dlabel:dlabel)+'</span></div>';});
+    h+='</div>';
   }
   h+='<div class="home-progress-mini"><div class="home-progress-mini-fill" style="width:'+(pTotal?Math.round(projDone.length/pTotal*100):100)+'%"></div></div></div>';
 
   // Quadro 2: Rotinas
   var catDots={gestao:'#7DB5D0',vendas:'#E8856A',pessoal:'#6BBF8E',desenv:'rgba(255,255,255,0.4)'};
-  h+='<div class="home-glass-card" data-nav="rotinas" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2.1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Rotinas</div><span class="home-card-count'+(doneRoutines.length===todayRoutines.length&&todayRoutines.length?' ok':'')+'">'+doneRoutines.length+'/'+todayRoutines.length+'</span></div>';
+  h+='<div class="home-glass-card home-card-secondary" data-nav="rotinas" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2.1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>Rotinas</div><span class="home-card-count'+(doneRoutines.length===todayRoutines.length&&todayRoutines.length?' ok':'')+'">'+doneRoutines.length+'/'+todayRoutines.length+'</span></div>';
   if(!todayRoutines.length){h+='<div class="home-empty">Nenhuma rotina hoje</div>';}
   else{todayRoutines.forEach(function(ev){var r=state.routines.find(function(x){return x.id===ev.id;}),done=r&&r.checks&&r.checks[dayKey]===true;var missed=r&&r.checks&&r.checks[dayKey]===false;var dotColor=done?'var(--green)':missed?'var(--red)':(r?'var(--red)':'var(--red)');h+='<div class="home-item'+(done?' home-item-done':'')+'"><div class="home-check'+(done?' done':'')+'" data-home-routine="'+ev.id+'" data-home-key="'+dayKey+'" data-home-prev="'+(missed?'missed':'null')+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-dot" style="background:'+dotColor+'"></div><div class="home-item-name" style="'+(done?'':'color:var(--text);font-weight:500')+'">'+r.name+'</div></div>';});}
   h+='<div class="home-progress-mini"><div class="home-progress-mini-fill" style="width:'+(todayRoutines.length?Math.round(doneRoutines.length/todayRoutines.length*100):100)+'%;background:linear-gradient(90deg,#355F79,#7DB5D0)"></div></div></div>';
 
   // Quadro 3: Afazeres
   var aTotal=afazTasks.length+afazDone.length;
-  h+='<div class="home-glass-card" data-nav="acoes" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Afazeres</div><span class="home-card-count'+(afazTasks.length===0?' ok':'')+'">'+afazDone.length+'/'+aTotal+'</span></div>';
+  h+='<div class="home-glass-card home-card-secondary" data-nav="acoes" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Afazeres</div><span class="home-card-count'+(afazTasks.length===0?' ok':'')+'">'+afazDone.length+'/'+aTotal+'</span></div>';
   if(!afazTasks.length){h+='<div class="home-empty">'+(aTotal?'Tudo em dia por aqui ✅':'Nenhum afazer para hoje 🎉')+'</div>';}
   else{
     afazTasks.forEach(function(t){var ov=t.due_date.substring(0,10)<ds;h+='<div class="home-item'+(ov?' home-item-overdue':'')+'"><div class="home-check" data-home-task="'+t.id+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+(ov?' ⚠':'')+'</div></div>';});
