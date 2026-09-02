@@ -1508,10 +1508,9 @@ function renderHome(){
   // Quadro 3: Afazeres
   var aTotal=afazTasks.length+afazDone.length;
   h+='<div class="home-glass-card" data-nav="acoes" style="cursor:pointer"><div class="home-card-header"><div class="home-card-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Afazeres</div><span class="home-card-count'+(afazTasks.length===0?' ok':'')+'">'+afazDone.length+'/'+aTotal+'</span></div>';
-  if(!aTotal){h+='<div class="home-empty">Nenhum afazer para hoje 🎉</div>';}
+  if(!afazTasks.length){h+='<div class="home-empty">'+(aTotal?'Tudo em dia por aqui ✅':'Nenhum afazer para hoje 🎉')+'</div>';}
   else{
     afazTasks.forEach(function(t){var ov=t.due_date.substring(0,10)<ds;h+='<div class="home-item'+(ov?' home-item-overdue':'')+'"><div class="home-check" data-home-task="'+t.id+'"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+(ov?' ⚠':'')+'</div></div>';});
-    afazDone.forEach(function(t){h+='<div class="home-item home-item-done"><div class="home-check done"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div><div class="home-item-name">'+t.name+'</div></div>';});
   }
   h+='<div class="home-progress-mini"><div class="home-progress-mini-fill" style="width:'+(aTotal?Math.round(afazDone.length/aTotal*100):100)+'%;background:linear-gradient(90deg,#C65D3B,#E8856A)"></div></div></div>';
 
