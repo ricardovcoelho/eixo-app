@@ -669,9 +669,14 @@ function renderDash(){
   var taskAtrasadas=allTasks.filter(function(t){return !t.done&&isOverdue(t.due_date);}).length;
   var taskAtrasadasPct=taskTotal?Math.round((taskAtrasadas/taskTotal)*100):0;
 
-  // métricas de rotinas
-  var rotTotal=state.routines.length;
-  var rotDone=state.routines.filter(function(r){return r.done;}).length;
+  // métricas de rotinas — precisa ser "hoje" de verdade: só as rotinas ativas hoje
+  // (batendo com a mesma lógica da tela Início), marcadas como feitas pelo check do dia.
+  // Antes usava state.routines.length (rotinas de TODAS as frequências, sempre) e r.done
+  // (campo que nem existe no modelo — por isso sempre aparecia 0 concluída).
+  var todStrDash=fmtDate(tod),todDayKeyDash='day'+tod.getFullYear()+'-'+tod.getMonth()+'-w'+tod.getDay();
+  var todayRoutinesDash=getEventsForDate(todStrDash).filter(function(e){return e.type==='routine';});
+  var rotTotal=todayRoutinesDash.length;
+  var rotDone=todayRoutinesDash.filter(function(e){var r=state.routines.find(function(x){return x.id===e.id;});return r&&r.checks&&r.checks[todDayKeyDash]===true;}).length;
   var rotPct=rotTotal?Math.round((rotDone/rotTotal)*100):0;
 
   // métricas de projetos
@@ -689,6 +694,54 @@ function renderDash(){
       +'<circle cx="'+(s/2)+'" cy="'+(s/2)+'" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="5" stroke-dasharray="'+circ+'" stroke-dashoffset="'+offset+'" stroke-linecap="round" transform="rotate(-90 '+(s/2)+' '+(s/2)+')"/>'
       +'<text x="'+(s/2)+'" y="'+(s/2+5)+'" text-anchor="middle" font-size="12" font-weight="800" fill="'+color+'" font-family="inherit">'+pct+'%</text>'
       +'</svg>';
+  }
+
+  // ── GRÁFICO: TENDÊNCIA DA SEMANA (Dom-Sáb, rotinas x tarefas) ──
+  // Barra da esquerda = rotinas do dia (verde), da direita = tarefas com prazo naquele dia (azul).
+  // Dias futuros ficam sem barra (ainda não têm dado, não é 0%). Posição (esquerda/direita) e
+  // legenda com texto reforçam a diferença entre as duas séries, já que as cores oficiais do
+  // app (verde/azul) são próximas demais pra depender só da cor.
+  function weekTrendHtml(){
+    var wkStart=weekStart(tod),colW=44,barW=14,gap=4,chartH=64,cols=7,svgW=colW*cols,ds2=fmtDate(tod);
+    var bars='',labels='';
+    for(var i=0;i<cols;i++){
+      var d=new Date(wkStart);d.setDate(wkStart.getDate()+i);
+      var dStr=fmtDate(d),isFuture=d>tod,isToday=dStr===ds2,x0=i*colW,cx=x0+colW/2;
+      var rPct=null,rDone=0,rTotal=0,tPct=null,tDone=0,tTotal=0;
+      if(!isFuture){
+        var dKey='day'+d.getFullYear()+'-'+d.getMonth()+'-w'+i;
+        var revs=getEventsForDate(dStr).filter(function(e){return e.type==='routine';});
+        rTotal=revs.length;
+        rDone=revs.filter(function(e){var r=state.routines.find(function(x){return x.id===e.id;});return r&&r.checks&&r.checks[dKey]===true;}).length;
+        rPct=rTotal?Math.round(rDone/rTotal*100):null;
+        var dTasks=state.tasks.filter(function(t){return t.due_date&&t.due_date.substring(0,10)===dStr&&(!t.objective_id||standbyObjIds.indexOf(t.objective_id)===-1);});
+        tTotal=dTasks.length;
+        tDone=dTasks.filter(function(t){return t.done;}).length;
+        tPct=tTotal?Math.round(tDone/tTotal*100):null;
+      }
+      var rX=cx-barW-gap/2,tX=cx+gap/2;
+      bars+='<line x1="'+x0+'" y1="'+chartH+'" x2="'+(x0+colW)+'" y2="'+chartH+'" stroke="var(--border)" stroke-width="1"/>';
+      if(rPct!==null){
+        var rH=Math.max(3,rPct/100*chartH);
+        bars+='<rect x="'+rX+'" y="'+(chartH-rH)+'" width="'+barW+'" height="'+rH+'" rx="3" fill="var(--green)"><title>Rotinas '+WEEKDAYS[i]+' '+d.getDate()+'/'+(d.getMonth()+1)+': '+rDone+'/'+rTotal+' ('+rPct+'%)</title></rect>';
+      }else{
+        bars+='<rect x="'+rX+'" y="'+(chartH-3)+'" width="'+barW+'" height="3" rx="1.5" fill="var(--border)" opacity="0.5"/>';
+      }
+      if(tPct!==null){
+        var tH=Math.max(3,tPct/100*chartH);
+        bars+='<rect x="'+tX+'" y="'+(chartH-tH)+'" width="'+barW+'" height="'+tH+'" rx="3" fill="var(--teal)"><title>Tarefas '+WEEKDAYS[i]+' '+d.getDate()+'/'+(d.getMonth()+1)+': '+tDone+'/'+tTotal+' ('+tPct+'%)</title></rect>';
+      }else{
+        bars+='<rect x="'+tX+'" y="'+(chartH-3)+'" width="'+barW+'" height="3" rx="1.5" fill="var(--border)" opacity="0.5"/>';
+      }
+      if(isToday&&(rPct!==null||tPct!==null)){
+        bars+='<text x="'+cx+'" y="'+(chartH-Math.max(rPct||0,tPct||0)/100*chartH-8)+'" text-anchor="middle" font-size="9" font-weight="800" fill="var(--text2)" font-family="inherit">'+(rPct!==null?rPct+'%':'')+'</text>';
+      }
+      labels+='<text x="'+cx+'" y="'+(chartH+16)+'" text-anchor="middle" font-size="10" font-weight="'+(isToday?'800':'600')+'" fill="'+(isToday?'var(--accent)':isFuture?'var(--text3)':'var(--text2)')+'">'+WEEKDAYS_SHORT[i]+'</text>';
+      if(isToday)bars+='<circle cx="'+cx+'" cy="'+(chartH+24)+'" r="2" fill="var(--accent)"/>';
+    }
+    var svg='<svg viewBox="0 0 '+svgW+' 96" style="width:100%;height:auto;display:block">'+bars+labels+'</svg>';
+    var legend='<div style="display:flex;gap:18px;margin-bottom:10px"><div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--green);display:inline-block"></span>Rotinas</div><div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)"><span style="width:10px;height:10px;border-radius:3px;background:var(--teal);display:inline-block"></span>Tarefas (por prazo)</div></div>';
+    return '<div class="card" style="margin-bottom:20px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Tendência da Semana</div></div>'+legend+'<div style="overflow-x:auto">'+svg+'</div></div>';
   }
 
   var h='';
@@ -736,6 +789,8 @@ function renderDash(){
     +'</div></div></div>';
 
   h+='</div>'; // dash-metric-grid
+
+  h+=weekTrendHtml();
 
   // ── PROJETOS (lista única, atrasados primeiro com destaque) ──
   h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px">Meus Projetos</div>';
