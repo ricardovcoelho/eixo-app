@@ -417,38 +417,9 @@ async function initApp(){
   wireSaveHandlers();
   await loadAll();
   renderHome();
-  checkWeeklyCleanup();
 }
 
-// ─── LIMPEZA SEMANAL (tarefas concluídas + check-ins de rotina) ──────────────
-function weekStartStr(d){
-  var day=d.getDay(),ws=new Date(d);ws.setDate(d.getDate()-day);ws.setHours(0,0,0,0);
-  return ws.getFullYear()+'-'+String(ws.getMonth()+1).padStart(2,'0')+'-'+String(ws.getDate()).padStart(2,'0');
-}
-
-function checkWeeklyCleanup(){
-  if(!currentUser||!currentUser.id)return;
-  var key='goodday_week_cleanup_'+currentUser.id;
-  var curWeek=weekStartStr(new Date());
-  var lastSeen=localStorage.getItem(key);
-  if(lastSeen===curWeek)return; // já perguntamos essa semana
-  document.getElementById('btn-weekly-cleanup-yes').onclick=async function(){
-    localStorage.setItem(key,curWeek);
-    closeModal('modal-weekly-cleanup');
-    await performCleanupCompletedTasks();
-    await performCleanupRoutineChecks();
-    renderHome();
-    if(document.getElementById('page-acoes').classList.contains('active'))renderAcoes();
-    if(document.getElementById('page-tarefas').classList.contains('active'))renderTasks();
-    if(document.getElementById('page-rotinas').classList.contains('active'))renderRoutines();
-  };
-  document.getElementById('btn-weekly-cleanup-no').onclick=function(){
-    localStorage.setItem(key,curWeek);
-    closeModal('modal-weekly-cleanup');
-  };
-  openModal('modal-weekly-cleanup');
-}
-
+// ─── LIMPEZA (tarefas concluídas + check-ins de rotina) — sob demanda, via botão em Usuário ──
 async function performCleanupCompletedTasks(){
   // Só afazeres soltos (sem objective_id) — tarefas de projeto nunca são tocadas pela limpeza em massa.
   var done=state.tasks.filter(function(t){return t.done&&!t.objective_id;});
@@ -474,6 +445,16 @@ async function performCleanupRoutineChecks(){
   }
 }
 
+async function performCleanupAllRoutineChecks(){
+  // Limpa TODAS as marcações de TODAS as rotinas (semana atual, S1-S5, Ant/Atual do mês) — reset total.
+  for(var i=0;i<state.routines.length;i++){
+    var r=state.routines[i];
+    if(!r.checks||!Object.keys(r.checks).length)continue;
+    r.checks={};
+    await sbUpdate('routines',r.id,{checks:{}});
+  }
+}
+
 // ─── MODALS HTML ─────────────────────────────────────────────────────────────
 function getModalsHTML(){return `
 <div class="overlay" id="modal-dream-edit"><div class="modal"><button class="modal-close" data-close="modal-dream-edit">×</button><h3>Editar Projeto</h3><div class="fg"><label>Nome</label><input id="de-name"></div><div class="fg"><label>Descrição</label><textarea id="de-desc"></textarea></div><div class="fg"><label>Prazo</label><input id="de-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-dream-edit">Cancelar</button><button class="btn btn-accent" id="btn-save-dream-edit">Salvar</button></div></div></div>
@@ -485,9 +466,7 @@ function getModalsHTML(){return `
 <div class="overlay" id="modal-cat-edit"><div class="modal"><button class="modal-close" data-close="modal-cat-edit">×</button><h3>Renomear Categoria</h3><div class="fg"><label>Nome</label><input id="cat-edit-name"></div><div class="modal-footer"><button class="btn" data-close="modal-cat-edit">Cancelar</button><button class="btn btn-accent" id="btn-save-cat">Salvar</button></div></div></div>
 <div class="overlay" id="modal-new-group"><div class="modal"><button class="modal-close" data-close="modal-new-group">×</button><h3>Novo Grupo de Rotinas</h3><div class="fg"><label>Nome do grupo</label><input id="new-group-name" placeholder="Ex: Família, Saúde..."></div><div class="modal-footer"><button class="btn" data-close="modal-new-group">Cancelar</button><button class="btn btn-accent" id="btn-save-new-group">Criar</button></div></div></div>
 <div class="overlay" id="modal-kr-edit"><div class="modal" style="max-width:420px"><button class="modal-close" data-close="modal-kr-edit">×</button><h3>Editar Resultado-Chave</h3><div class="fg"><label>Nome</label><input id="kre-name"></div><div class="fg"><label>Prazo</label><input id="kre-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-kr-edit">Cancelar</button><button class="btn btn-accent" id="btn-save-kr-edit">Salvar</button></div></div></div>
-<div class="overlay" id="modal-reschedule"><div class="modal" style="max-width:380px"><button class="modal-close" data-close="modal-reschedule">×</button><h3 id="reschedule-title">Reagendar</h3><div style="font-size:13px;color:var(--text2);margin-bottom:16px" id="reschedule-name"></div><div class="fg"><label>Nova data</label><input id="reschedule-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-reschedule">Cancelar</button><button class="btn btn-accent" id="btn-save-reschedule">Reagendar</button></div></div></div>
-<div class="overlay" id="modal-weekly-cleanup"><div class="modal" style="max-width:420px"><h3>🧹 Nova semana!</h3><p style="font-size:13px;color:var(--text2);margin-bottom:16px">Quer mandar pra lixeira os afazeres já concluídos (tarefas de projetos não são afetadas) e reiniciar os check-ins das rotinas da semana passada?</p><div class="modal-footer"><button class="btn" id="btn-weekly-cleanup-no">Não, manter</button><button class="btn btn-accent" id="btn-weekly-cleanup-yes">Sim, limpar</button></div></div></div>
-<div class="glass-overlay" id="glass-overlay"><div class="glass-panel"><button class="glass-panel-close" id="glass-close"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div id="glass-content"></div></div></div>
+<div class="overlay" id="modal-reschedule"><div class="modal" style="max-width:380px"><button class="modal-close" data-close="modal-reschedule">×</button><h3 id="reschedule-title">Reagendar</h3><div style="font-size:13px;color:var(--text2);margin-bottom:16px" id="reschedule-name"></div><div class="fg"><label>Nova data</label><input id="reschedule-date" type="date"></div><div class="modal-footer"><button class="btn" data-close="modal-reschedule">Cancelar</button><button class="btn btn-accent" id="btn-save-reschedule">Reagendar</button></div></div></div><div class="glass-overlay" id="glass-overlay"><div class="glass-panel"><button class="glass-panel-close" id="glass-close"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button><div id="glass-content"></div></div></div>
 `;}
 
 
@@ -2407,8 +2386,12 @@ function renderPerfil(){
     </div>
     <div class="card" style="max-width:480px;margin-top:14px">
       <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">🧹 Limpeza</h2>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Manda pra lixeira os afazeres já concluídos (tarefas vinculadas a projetos não são afetadas), na hora, sem esperar o aviso semanal.</p>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:14px">Manda pra lixeira os afazeres já concluídos (tarefas vinculadas a projetos não são afetadas).</p>
       <button class="btn" id="btn-limpar-concluidas">Limpar afazeres concluídos</button>
+      <p style="font-size:13px;color:var(--text3);margin:16px 0 14px">Reinicia os check-ins das rotinas (a grade D/S/T/Q/Q/S/S da semana atual).</p>
+      <button class="btn" id="btn-limpar-marcacoes-semana">Limpar marcações da semana</button>
+      <p style="font-size:13px;color:var(--text3);margin:16px 0 14px">Apaga <strong>todo</strong> o histórico de marcações de todas as rotinas (semana, mês, tudo). Não dá pra desfazer.</p>
+      <button class="btn" id="btn-limpar-marcacoes-tudo" style="color:var(--red);border-color:rgba(192,57,43,0.25)">Limpar marcações de tudo</button>
     </div>
     <div class="card" style="max-width:480px;margin-top:14px">
       <h2 style="font-size:15px;font-weight:700;margin-bottom:6px">🗑️ Lixeira</h2>
@@ -2437,6 +2420,27 @@ function renderPerfil(){
     if(document.getElementById('page-tarefas').classList.contains('active'))renderTasks();
     renderHome();
     renderLixeira();
+  });
+
+  document.getElementById('btn-limpar-marcacoes-semana').addEventListener('click', async function(){
+    if(!confirm('Reiniciar os check-ins da semana atual (D/S/T/Q/Q/S/S) de todas as rotinas?'))return;
+    this.textContent='Limpando...';this.disabled=true;
+    await performCleanupRoutineChecks();
+    this.textContent='Limpar marcações da semana';this.disabled=false;
+    alert('Pronto! Marcações da semana reiniciadas.');
+    renderHome();
+    if(document.getElementById('page-rotinas').classList.contains('active'))renderRoutines();
+  });
+
+  document.getElementById('btn-limpar-marcacoes-tudo').addEventListener('click', async function(){
+    if(!confirm('Apagar TODO o histórico de marcações de TODAS as rotinas? Isso não pode ser desfeito.'))return;
+    if(!confirm('Tem certeza mesmo? Vai perder o histórico completo (semana, mês, tudo).'))return;
+    this.textContent='Limpando...';this.disabled=true;
+    await performCleanupAllRoutineChecks();
+    this.textContent='Limpar marcações de tudo';this.disabled=false;
+    alert('Pronto! Todas as marcações foram zeradas.');
+    renderHome();
+    if(document.getElementById('page-rotinas').classList.contains('active'))renderRoutines();
   });
 
   renderLixeira();
