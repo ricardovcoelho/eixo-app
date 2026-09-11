@@ -733,12 +733,29 @@ function renderDash(){
     });
     var wPct=wTotal?Math.round(wDone/wTotal*100):null,mPct=mTotal?Math.round(mDone/mTotal*100):null;
     if(wPct===null&&mPct===null)return '';
+
+    // Por tema — mesmas categorias da tela Rotinas (padrão + customizadas)
+    var defaultCats=[{key:'gestao',label:'Gestão'},{key:'vendas',label:'Vendas'},{key:'pessoal',label:'Pessoal'},{key:'desenv',label:'Desenvolvimento'}];
+    var customCatList=(state.customCats||[]).map(function(k){return {key:k,label:state.catLabels&&state.catLabels[k]?state.catLabels[k]:k.toUpperCase()};});
+    var catRows='';
+    defaultCats.concat(customCatList).forEach(function(cat){
+      var cm=categoryDeliveryRate(cat.key,'month');
+      if(cm.pct===null)return;
+      catRows+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border)">'
+        +'<div style="font-size:12px;color:var(--text2);width:110px;flex-shrink:0">'+(state.catLabels&&state.catLabels[cat.key]?state.catLabels[cat.key]:cat.label)+'</div>'
+        +'<div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+cm.pct+'%;background:'+routineRateColor(cm.pct)+';border-radius:3px"></div></div>'
+        +'<div style="font-size:12px;font-weight:700;color:'+routineRateColor(cm.pct)+';width:34px;text-align:right">'+cm.pct+'%</div>'
+        +'</div>';
+    });
+
     return '<div class="card" style="margin-bottom:20px">'
       +'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Cumprimento de Rotinas</div>'
       +'<div style="display:flex;gap:28px;flex-wrap:wrap">'
       +(wPct!==null?('<div style="display:flex;align-items:center;gap:12px">'+miniRing(wPct,routineRateColor(wPct),56)+'<div><div style="font-size:13px;font-weight:600;color:var(--text)">Semana</div><div style="font-size:11px;color:var(--text3)">'+wDone+'/'+wTotal+' entregas</div></div></div>'):'')
       +(mPct!==null?('<div style="display:flex;align-items:center;gap:12px">'+miniRing(mPct,routineRateColor(mPct),56)+'<div><div style="font-size:13px;font-weight:600;color:var(--text)">Mês</div><div style="font-size:11px;color:var(--text3)">'+mDone+'/'+mTotal+' entregas</div></div></div>'):'')
-      +'</div></div>';
+      +'</div>'
+      +(catRows?('<div style="margin-top:16px"><div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px">Por tema (mês)</div>'+catRows+'</div>'):'')
+      +'</div>';
   }
 
   var h='';
@@ -1088,7 +1105,7 @@ function renderRoutines(){
   var knownKeys=cats.map(function(c){return c.key;});
   cats.forEach(function(cat){
     var rs=state.routines.filter(function(r){return r.category===cat.key;}),catLabel=state.catLabels&&state.catLabels[cat.key]?state.catLabels[cat.key]:cat.label,isCustom=(state.customCats||[]).indexOf(cat.key)!==-1;
-    h+='<div class="r-section"><div class="r-section-hdr"><div style="display:flex;align-items:center;gap:6px"><span class="r-cat-pill">'+catLabel+'</span><button class="btn btn-sm btn-icon edt-cat" data-cat="'+cat.key+'" style="padding:4px">'+edt()+'</button>'+(isCustom?'<button class="btn btn-sm btn-icon del-cat" data-cat="'+cat.key+'" style="padding:4px;color:var(--red)">'+trsh()+'</button>':'')+'</div><button class="btn btn-sm btn-accent add-r" data-cat="'+cat.key+'">+ Rotina</button></div>';
+    h+='<div class="r-section"><div class="r-section-hdr"><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span class="r-cat-pill">'+catLabel+'</span>'+categoryMeterHtml(cat.key)+'<button class="btn btn-sm btn-icon edt-cat" data-cat="'+cat.key+'" style="padding:4px">'+edt()+'</button>'+(isCustom?'<button class="btn btn-sm btn-icon del-cat" data-cat="'+cat.key+'" style="padding:4px;color:var(--red)">'+trsh()+'</button>':'')+'</div><button class="btn btn-sm btn-accent add-r" data-cat="'+cat.key+'">+ Rotina</button></div>';
     h+='<div class="r-table">'+hdr;
     if(!rs.length){h+='<div style="padding:14px 12px;font-size:13px;color:var(--text3)">Nenhuma rotina.</div>';}
     else{ rs.forEach(function(r){ h+=routineRowHtml(r); }); }
@@ -1245,7 +1262,30 @@ function routineMonthlyRate(r){
   return {done:done,total:total,pct:total?Math.round(done/total*100):null};
 }
 
-function routineRateColor(p){return p>=70?'var(--green)':p>=35?'var(--accent)':'var(--red)';}
+// Taxa de entrega de um tema/categoria inteiro (soma de todas as rotinas dele),
+// semana ou mês -- mesma lógica de pool usada no card do Dashboard.
+function categoryDeliveryRate(catKey,period){
+  var wStart=weekStart(today()),tod=today();
+  var done=0,total=0;
+  state.routines.filter(function(r){return r.category===catKey;}).forEach(function(r){
+    var rate=period==='week'?routineDeliveryRate(r,wStart,tod):routineMonthlyRate(r);
+    if(rate.pct!==null){done+=rate.done;total+=rate.total;}
+  });
+  return {done:done,total:total,pct:total?Math.round(done/total*100):null};
+}
+
+// >75% ok (verde), 50-75% atenção (laranja), <50% ruim (vermelho)
+function routineRateColor(p){return p>75?'var(--green)':p>=50?'var(--warning)':'var(--red)';}
+
+// Selo "Semana X% · Mês Y%" pro cabeçalho de um tema/categoria inteiro.
+function categoryMeterHtml(catKey){
+  var w=categoryDeliveryRate(catKey,'week'),m=categoryDeliveryRate(catKey,'month');
+  if(w.pct===null&&m.pct===null)return '';
+  var parts=[];
+  if(w.pct!==null)parts.push('Sem <b style="color:'+routineRateColor(w.pct)+'">'+w.pct+'%</b>');
+  if(m.pct!==null)parts.push('Mês <b style="color:'+routineRateColor(m.pct)+'">'+m.pct+'%</b>');
+  return '<span style="font-size:11px;color:var(--text3);display:flex;gap:8px;align-items:center;margin-left:4px">'+parts.join('<span style="opacity:0.4">·</span>')+'</span>';
+}
 
 // Legenda compacta "Semana X% · Mês Y%" pra exibir junto do nome da rotina.
 // Fica em branco (sem medidor) enquanto não houver histórico suficiente ainda.

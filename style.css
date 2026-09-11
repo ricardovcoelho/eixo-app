@@ -9,6 +9,7 @@
   --teal:#355F79;--teal-bg:rgba(53,95,121,0.08);--teal-border:rgba(53,95,121,0.2);
   --green:#2E7D52;--green-bg:rgba(46,125,82,0.08);
   --red:#C0392B;--red-bg:rgba(192,57,43,0.08);
+  --warning:#D98E2B;--warning-bg:rgba(217,142,43,0.1);
   --blue:#355F79;--blue-bg:rgba(53,95,121,0.08);
   --radius:12px;--radius-lg:16px;--radius-xl:22px;
   --shadow:0 1px 3px rgba(27,27,58,0.04),0 4px 16px rgba(27,27,58,0.06);
@@ -19,6 +20,7 @@ body.dark-theme{
   --bg:#111118;--bg2:#1A1A28;--bg3:#222234;--bg4:#2C2C42;
   --border:#2A2A3E;--border2:#3E3E5C;
   --text:#F0F0F8;--text2:#B8B8D0;--text3:#7E7EA0;
+  --warning:#E8A855;--warning-bg:rgba(232,168,85,0.14);
 }
 body.dark-theme .topbar{background:var(--bg2);border-color:var(--border)}
 body.dark-theme .card,body.dark-theme .dream-card{background:var(--bg2);border-color:var(--border)}
