@@ -725,11 +725,11 @@ function renderDash(){
 
   // ── CUMPRIMENTO DE ROTINAS (medidor semanal/mensal, somando todas as rotinas) ──
   function routineCumprimentoHtml(){
-    var wStart=weekStart(tod),mStart=new Date(tod.getFullYear(),tod.getMonth(),1);
+    var wStart=weekStart(tod);
     var wDone=0,wTotal=0,mDone=0,mTotal=0;
     state.routines.forEach(function(r){
       var w=routineDeliveryRate(r,wStart,tod);if(w.pct!==null){wDone+=w.done;wTotal+=w.total;}
-      var m=routineDeliveryRate(r,mStart,tod);if(m.pct!==null){mDone+=m.done;mTotal+=m.total;}
+      var m=routineMonthlyRate(r);if(m.pct!==null){mDone+=m.done;mTotal+=m.total;}
     });
     var wPct=wTotal?Math.round(wDone/wTotal*100):null,mPct=mTotal?Math.round(mDone/mTotal*100):null;
     if(wPct===null&&mPct===null)return '';
@@ -1172,21 +1172,25 @@ function recordRoutineDayHistory(r,key,val){
   r.checks[fmtDate(d)]=val;
 }
 
-// Taxa de entrega de uma rotina entre startDate e endDate (inclusive), só pra
-// frequências com expectativa diária (diária/dias úteis/semanal/dias específicos).
-// Mensal e "dia(s) fixo(s) do mês" não entram aqui (cadência diferente demais).
-function routineDeliveryRate(r,startDate,endDate){
+// Dias em que uma rotina é esperada, conforme a frequência (só as com
+// expectativa diária -- mensal/"dia fixo do mês" ficam fora dos medidores,
+// cadência diferente demais pra entrar na mesma conta).
+function routineDayActive(r,dow){
   var freq=r.frequency;
-  function isDayActive(dow){
-    if(freq==='daily')return true;
-    if(freq==='weekdays')return dow>=1&&dow<=5;
-    if(freq==='weekly')return dow===5;
-    if(freq==='custom_day'){
-      var days=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];
-      return days.indexOf(dow)!==-1;
-    }
-    return false;
+  if(freq==='daily')return true;
+  if(freq==='weekdays')return dow>=1&&dow<=5;
+  if(freq==='weekly')return dow===5;
+  if(freq==='custom_day'){
+    var days=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];
+    return days.indexOf(dow)!==-1;
   }
+  return false;
+}
+
+// Taxa de entrega de uma rotina entre startDate e endDate (inclusive), usando
+// só o histórico dia-a-dia real (chaves AAAA-MM-DD).
+function routineDeliveryRate(r,startDate,endDate){
+  function isDayActive(dow){return routineDayActive(r,dow);}
   var checks=r.checks||{};
   var trackedDates=Object.keys(checks).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k);}).sort();
   if(!trackedDates.length)return {done:0,total:0,pct:null};
@@ -1202,13 +1206,52 @@ function routineDeliveryRate(r,startDate,endDate){
   return {done:done,total:total,pct:total?Math.round(done/total*100):null};
 }
 
+// Intervalo (domingo a sábado) da N-ésima semana que toca o mês — S1 é a semana
+// que contém o dia 1 (pode começar no mês anterior), S2 a seguinte, etc.
+function weekOfMonthRange(year,month,n){
+  var firstOfMonth=new Date(year,month,1);
+  var firstSunday=weekStart(firstOfMonth);
+  var start=new Date(firstSunday);start.setDate(firstSunday.getDate()+(n-1)*7);
+  var end=new Date(start);end.setDate(start.getDate()+6);
+  return {start:start,end:end};
+}
+
+// Taxa de entrega do mês inteiro (até hoje), "reforçada" pelas marcações S1-S5:
+// pra cada dia esperado, usa o histórico dia-a-dia real se existir; senão, cai
+// pro check verde/vermelho da semana do mês (S1..S5) correspondente àquele dia
+// -- é o jeito de aproveitar semanas já marcadas antes do rastreio diário
+// existir. Sem histórico diário nem marcação de semana pro dia, ele simplesmente
+// não entra na conta (sem dado, não penaliza).
+function routineMonthlyRate(r){
+  var tod=today(),yr=tod.getFullYear(),mo=tod.getMonth(),mStart=new Date(yr,mo,1);
+  var checks=r.checks||{};
+  var total=0,done=0;
+  for(var n=1;n<=5;n++){
+    var range=weekOfMonthRange(yr,mo,n);
+    if(range.start>tod)break;
+    var wVal=checks['wk'+yr+'-'+mo+'-'+n];
+    var s=range.start<mStart?mStart:range.start,e=range.end>tod?tod:range.end;
+    if(r.start_date){var sd=new Date(r.start_date+'T00:00:00');if(sd>s)s=sd;}
+    for(var d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
+      if(!routineDayActive(r,d.getDay()))continue;
+      var iso=fmtDate(d);
+      if(checks.hasOwnProperty(iso)){
+        total++;if(checks[iso]===true)done++;
+      }else if(wVal===true||wVal===false){
+        total++;if(wVal===true)done++;
+      }
+    }
+  }
+  return {done:done,total:total,pct:total?Math.round(done/total*100):null};
+}
+
 function routineRateColor(p){return p>=70?'var(--green)':p>=35?'var(--accent)':'var(--red)';}
 
 // Legenda compacta "Semana X% · Mês Y%" pra exibir junto do nome da rotina.
 // Fica em branco (sem medidor) enquanto não houver histórico suficiente ainda.
 function routineMeterHtml(r){
-  var tod=today(),wStart=weekStart(tod),mStart=new Date(tod.getFullYear(),tod.getMonth(),1);
-  var w=routineDeliveryRate(r,wStart,tod),m=routineDeliveryRate(r,mStart,tod);
+  var tod=today(),wStart=weekStart(tod);
+  var w=routineDeliveryRate(r,wStart,tod),m=routineMonthlyRate(r);
   if(w.pct===null&&m.pct===null)return '';
   var parts=[];
   if(w.pct!==null)parts.push('Semana <b style="color:'+routineRateColor(w.pct)+'">'+w.pct+'%</b> <span style="opacity:0.7">('+w.done+'/'+w.total+')</span>');
