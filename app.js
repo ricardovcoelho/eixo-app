@@ -723,6 +723,24 @@ function renderDash(){
     return '<div class="card" style="margin-bottom:20px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Tendência da Semana</div></div>'+legend+'<div style="overflow-x:auto">'+svg+'</div></div>';
   }
 
+  // ── CUMPRIMENTO DE ROTINAS (medidor semanal/mensal, somando todas as rotinas) ──
+  function routineCumprimentoHtml(){
+    var wStart=weekStart(tod),mStart=new Date(tod.getFullYear(),tod.getMonth(),1);
+    var wDone=0,wTotal=0,mDone=0,mTotal=0;
+    state.routines.forEach(function(r){
+      var w=routineDeliveryRate(r,wStart,tod);if(w.pct!==null){wDone+=w.done;wTotal+=w.total;}
+      var m=routineDeliveryRate(r,mStart,tod);if(m.pct!==null){mDone+=m.done;mTotal+=m.total;}
+    });
+    var wPct=wTotal?Math.round(wDone/wTotal*100):null,mPct=mTotal?Math.round(mDone/mTotal*100):null;
+    if(wPct===null&&mPct===null)return '';
+    return '<div class="card" style="margin-bottom:20px">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px">Cumprimento de Rotinas</div>'
+      +'<div style="display:flex;gap:28px;flex-wrap:wrap">'
+      +(wPct!==null?('<div style="display:flex;align-items:center;gap:12px">'+miniRing(wPct,routineRateColor(wPct),56)+'<div><div style="font-size:13px;font-weight:600;color:var(--text)">Semana</div><div style="font-size:11px;color:var(--text3)">'+wDone+'/'+wTotal+' entregas</div></div></div>'):'')
+      +(mPct!==null?('<div style="display:flex;align-items:center;gap:12px">'+miniRing(mPct,routineRateColor(mPct),56)+'<div><div style="font-size:13px;font-weight:600;color:var(--text)">Mês</div><div style="font-size:11px;color:var(--text3)">'+mDone+'/'+mTotal+' entregas</div></div></div>'):'')
+      +'</div></div>';
+  }
+
   var h='';
 
   // ── CARDS DE MÉTRICAS ──
@@ -770,6 +788,7 @@ function renderDash(){
   h+='</div>'; // dash-metric-grid
 
   h+=weekTrendHtml();
+  h+=routineCumprimentoHtml();
 
   // ── PROJETOS (lista única, atrasados primeiro com destaque) ──
   h+='<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:24px 0 12px">Meus Projetos</div>';
@@ -1044,7 +1063,7 @@ function renderRoutines(){
     var checks=r.checks||{},pv=checks[prevMoKey],cv=checks[curMoKey];
     var pending=!!(r.start_date&&r.start_date>todayStr);
     var startBadge=pending?' <span class="badge badge-gray" style="font-size:10px;font-weight:600;margin-left:6px;white-space:nowrap">⏳ a partir de '+new Date(r.start_date+'T00:00:00').toLocaleDateString('pt-BR')+'</span>':'';
-    var rh='<div class="r-row'+(pending?' r-row-pending':'')+'"'+(pending?' style="opacity:0.45"':'')+' title="'+(pending?'Rotina ainda não iniciada':'')+'"><div style="font-size:13px;font-weight:500">'+r.name+startBadge+'</div>';
+    var rh='<div class="r-row'+(pending?' r-row-pending':'')+'"'+(pending?' style="opacity:0.45"':'')+' title="'+(pending?'Rotina ainda não iniciada':'')+'"><div><div style="font-size:13px;font-weight:500">'+r.name+startBadge+'</div>'+(pending?'':routineMeterHtml(r))+'</div>';
     rh+='<div class="rcell"><div class="rdot'+(pv===true?' ok':pv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+prevMoKey+'"></div></div>';
     rh+='<div class="rcell"><div class="rdot'+(cv===true?' ok':cv===false?' nok':'')+'" data-rid="'+r.id+'" data-key="'+curMoKey+'"></div></div><div></div>';
     var freq2=r.frequency;
@@ -1089,7 +1108,7 @@ function renderRoutines(){
 
   h+='<div style="margin-top:8px"><button class="btn btn-sm" id="btn-new-group" style="width:100%;justify-content:center;color:var(--accent);border-color:var(--accent-border)">+ Novo Grupo de Rotinas</button></div>';
   el.innerHTML=h;
-  el.querySelectorAll('.rdot[data-rid],.rsq[data-rid]').forEach(function(c){c.addEventListener('click',async function(){var r=state.routines.find(function(x){return x.id===parseInt(c.dataset.rid);});if(!r)return;if(!r.checks)r.checks={};var cur=r.checks[c.dataset.key];r.checks[c.dataset.key]=cur===null||cur===undefined?true:cur===true?false:null;await sbUpdate('routines',r.id,{checks:r.checks});renderRoutines();if(document.getElementById('page-home').classList.contains('active'))renderHome();});});
+  el.querySelectorAll('.rdot[data-rid],.rsq[data-rid]').forEach(function(c){c.addEventListener('click',async function(){var r=state.routines.find(function(x){return x.id===parseInt(c.dataset.rid);});if(!r)return;if(!r.checks)r.checks={};var cur=r.checks[c.dataset.key];r.checks[c.dataset.key]=cur===null||cur===undefined?true:cur===true?false:null;recordRoutineDayHistory(r,c.dataset.key,r.checks[c.dataset.key]);await sbUpdate('routines',r.id,{checks:r.checks});renderRoutines();if(document.getElementById('page-home').classList.contains('active'))renderHome();});});
   el.querySelectorAll('.add-r').forEach(function(b){b.addEventListener('click',function(){populateRCatOptions();document.getElementById('r-cat').value=b.dataset.cat;document.getElementById('routine-modal-title').textContent='Nova Rotina';editRoutineId=null;document.getElementById('r-name').value='';document.getElementById('r-freq').value='daily';document.getElementById('r-start').value='';openModal('modal-routine');});});
   el.querySelectorAll('.edt-r').forEach(function(b){b.addEventListener('click',function(){var r=state.routines.find(function(x){return x.id===parseInt(b.dataset.id);});if(!r)return;editRoutineId=r.id;populateRCatOptions();document.getElementById('routine-modal-title').textContent='Editar Rotina';document.getElementById('r-name').value=r.name;document.getElementById('r-cat').value=r.category;document.getElementById('r-freq').value=r.frequency;document.getElementById('r-time').value=r.time||'';document.getElementById('r-start').value=r.start_date||'';document.querySelectorAll('.dow-cb').forEach(function(cb){cb.checked=false;});document.getElementById('r-mdays-input').value='';if(r.frequency==='custom_day'&&r.day_of_week!=null){var days=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];days.forEach(function(d){var cb=document.querySelector('.dow-cb[value="'+d+'"]');if(cb)cb.checked=true;});}if(r.frequency==='monthly_days'&&r.day_of_week!=null){var mdays=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];document.getElementById('r-mdays-input').value=mdays.join(', ');}document.getElementById('r-dow-group').style.display=r.frequency==='custom_day'?'block':'none';document.getElementById('r-mday-group').style.display=r.frequency==='monthly_days'?'block':'none';document.getElementById('r-time-group').style.display=(r.frequency==='custom_day'||r.frequency==='weekdays'||r.frequency==='weekly'||r.frequency==='monthly_days')?'block':'none';openModal('modal-routine');});});
   el.querySelectorAll('.del-r').forEach(function(b){b.addEventListener('click',async function(){if(!confirm('Excluir rotina?'))return;await sbDelete('routines',parseInt(b.dataset.id));state.routines=state.routines.filter(function(r){return r.id!==parseInt(b.dataset.id);});renderRoutines();});});
@@ -1136,6 +1155,66 @@ var WEEKDAYS_SHORT=['D','S','T','Q','Q','S','S'];
 var MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 function weekStart(d){var day=d.getDay(),diff=d.getDate()-day,ws=new Date(d);ws.setDate(diff);return ws;}
+
+// ─── CUMPRIMENTO DE ROTINAS (semana/mês) ──────────────────────────────────────
+// As chaves "day{ano}-{mes}-w{dia}" da grade semanal são reaproveitadas toda
+// semana (mesma chave vale pra dias diferentes de semanas diferentes) -- não dá
+// pra calcular uma taxa histórica só com elas. Por isso, todo toggle de um dia
+// da semana também grava uma marca permanente com a data real (chave
+// "AAAA-MM-DD"), que nunca é reaproveitada nem tocada pela "limpar semana"
+// (só "limpar tudo" apaga). O medidor só existe a partir de quando essa marca
+// começar a ser gravada -- não há como reconstruir dias anteriores a isso.
+function recordRoutineDayHistory(r,key,val){
+  var m=/^day\d+-\d+-w(\d)$/.exec(key);
+  if(!m)return;
+  var dow=parseInt(m[1],10),ws=weekStart(today()),d=new Date(ws);
+  d.setDate(ws.getDate()+dow);
+  r.checks[fmtDate(d)]=val;
+}
+
+// Taxa de entrega de uma rotina entre startDate e endDate (inclusive), só pra
+// frequências com expectativa diária (diária/dias úteis/semanal/dias específicos).
+// Mensal e "dia(s) fixo(s) do mês" não entram aqui (cadência diferente demais).
+function routineDeliveryRate(r,startDate,endDate){
+  var freq=r.frequency;
+  function isDayActive(dow){
+    if(freq==='daily')return true;
+    if(freq==='weekdays')return dow>=1&&dow<=5;
+    if(freq==='weekly')return dow===5;
+    if(freq==='custom_day'){
+      var days=Array.isArray(r.day_of_week)?r.day_of_week:[r.day_of_week];
+      return days.indexOf(dow)!==-1;
+    }
+    return false;
+  }
+  var checks=r.checks||{};
+  var trackedDates=Object.keys(checks).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k);}).sort();
+  if(!trackedDates.length)return {done:0,total:0,pct:null};
+  var boundStart=new Date(Math.max(new Date(startDate).getTime(),new Date(trackedDates[0]+'T00:00:00').getTime()));
+  if(r.start_date){var sd=new Date(r.start_date+'T00:00:00');if(sd>boundStart)boundStart=sd;}
+  var end=new Date(Math.min(new Date(endDate).getTime(),today().getTime()));
+  var total=0,done=0;
+  for(var d=new Date(boundStart);d<=end;d.setDate(d.getDate()+1)){
+    if(!isDayActive(d.getDay()))continue;
+    total++;
+    if(checks[fmtDate(d)]===true)done++;
+  }
+  return {done:done,total:total,pct:total?Math.round(done/total*100):null};
+}
+
+function routineRateColor(p){return p>=70?'var(--green)':p>=35?'var(--accent)':'var(--red)';}
+
+// Legenda compacta "Semana X% · Mês Y%" pra exibir junto do nome da rotina.
+// Fica em branco (sem medidor) enquanto não houver histórico suficiente ainda.
+function routineMeterHtml(r){
+  var tod=today(),wStart=weekStart(tod),mStart=new Date(tod.getFullYear(),tod.getMonth(),1);
+  var w=routineDeliveryRate(r,wStart,tod),m=routineDeliveryRate(r,mStart,tod);
+  if(w.pct===null&&m.pct===null)return '';
+  var parts=[];
+  if(w.pct!==null)parts.push('Semana <b style="color:'+routineRateColor(w.pct)+'">'+w.pct+'%</b> <span style="opacity:0.7">('+w.done+'/'+w.total+')</span>');
+  if(m.pct!==null)parts.push('Mês <b style="color:'+routineRateColor(m.pct)+'">'+m.pct+'%</b> <span style="opacity:0.7">('+m.done+'/'+m.total+')</span>');
+  return '<div style="font-size:10.5px;color:var(--text3);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap">'+parts.join('<span style="opacity:0.4">·</span>')+'</div>';
+}
 
 function getEventsForDate(dateStr){
   var dt=new Date(dateStr+'T00:00:00'),dow=dt.getDay(),dom=dt.getDate(),events=[];
@@ -1558,7 +1637,7 @@ function renderHome(){
   document.getElementById('home-theme-toggle').addEventListener('click',function(){var wrap=document.getElementById('home-wrap'),isLight=wrap.classList.contains('light');wrap.classList.toggle('light',!isLight);localStorage.setItem('eixo_home_theme',isLight?'dark':'light');this.textContent=isLight?'☀️ Claro':'🌙 Escuro';});
   el.querySelectorAll('.home-glass-card[data-nav]').forEach(function(card){card.addEventListener('click',function(e){if(e.target.closest('.home-check'))return;nav(card.dataset.nav);});});
   el.querySelectorAll('.home-check[data-home-task]').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();await toggleTask(parseInt(this.getAttribute('data-home-task')));renderHome();});});
-  el.querySelectorAll('.home-check[data-home-routine]').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();var id=parseInt(this.getAttribute('data-home-routine')),key=this.getAttribute('data-home-key'),r=state.routines.find(function(x){return x.id===id;});if(!r)return;if(!r.checks)r.checks={};var cur=r.checks[key];r.checks[key]=cur===null||cur===undefined?true:cur===true?false:null;await sbUpdate('routines',r.id,{checks:r.checks});renderHome();if(document.getElementById('page-rotinas').classList.contains('active'))renderRoutines();});});
+  el.querySelectorAll('.home-check[data-home-routine]').forEach(function(b){b.addEventListener('click',async function(e){e.stopPropagation();var id=parseInt(this.getAttribute('data-home-routine')),key=this.getAttribute('data-home-key'),r=state.routines.find(function(x){return x.id===id;});if(!r)return;if(!r.checks)r.checks={};var cur=r.checks[key];r.checks[key]=cur===null||cur===undefined?true:cur===true?false:null;recordRoutineDayHistory(r,key,r.checks[key]);await sbUpdate('routines',r.id,{checks:r.checks});renderHome();if(document.getElementById('page-rotinas').classList.contains('active'))renderRoutines();});});
 }
 function renderAgenda(){
   var el=document.getElementById('agenda-content');
@@ -1815,6 +1894,7 @@ function renderAgenda(){
         if(!r||!dayKey)return;
         if(!r.checks)r.checks={};
         r.checks[dayKey]=r.checks[dayKey]===true?null:true;
+        recordRoutineDayHistory(r,dayKey,r.checks[dayKey]);
         await sbUpdate('routines',r.id,{checks:r.checks});
         renderAgenda();
       }
@@ -1829,6 +1909,7 @@ function renderAgenda(){
       var r=state.routines.find(function(x){return x.id===id;});
       if(!r)return;if(!r.checks)r.checks={};
       r.checks[key]=r.checks[key]===true?null:true;
+      recordRoutineDayHistory(r,key,r.checks[key]);
       await sbUpdate('routines',r.id,{checks:r.checks});
       renderAgenda();
     });
